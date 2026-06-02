@@ -1,22 +1,29 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: КадастрПро API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: users
+  - name: engineers
+  - name: orders
+  - name: bids
+  - name: reviews
+  - name: chat
+  - name: admin
+  - name: stats
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +31,627 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResult"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /users/me:
+    get:
+      operationId: getMe
+      tags: [users]
+      summary: Get current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /engineers:
+    get:
+      operationId: listEngineers
+      tags: [engineers]
+      summary: List engineers
+      parameters:
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: specialization
+          in: query
+          schema:
+            type: string
+        - name: minRating
+          in: query
+          schema:
+            type: number
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineerList"
+
+  /engineers/top:
+    get:
+      operationId: listTopEngineers
+      tags: [engineers]
+      summary: Top rated engineers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Engineer"
+
+  /engineers/me:
+    get:
+      operationId: getMyEngineerProfile
+      tags: [engineers]
+      summary: Get current engineer profile
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engineer"
+    put:
+      operationId: updateMyEngineerProfile
+      tags: [engineers]
+      summary: Update current engineer profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EngineerUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engineer"
+
+  /engineers/verify:
+    post:
+      operationId: verifyEngineer
+      tags: [engineers]
+      summary: Verify engineer registry number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyResult"
+
+  /engineers/{engineerId}:
+    get:
+      operationId: getEngineer
+      tags: [engineers]
+      summary: Get engineer by ID
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Engineer"
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: List orders
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: serviceType
+          in: query
+          schema:
+            type: string
+        - name: region
+          in: query
+          schema:
+            type: string
+        - name: customerId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Create order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+
+  /orders/recent:
+    get:
+      operationId: listRecentOrders
+      tags: [orders]
+      summary: Recent open orders
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+
+  /orders/{orderId}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Get order by ID
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    patch:
+      operationId: updateOrder
+      tags: [orders]
+      summary: Update order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+    delete:
+      operationId: deleteOrder
+      tags: [orders]
+      summary: Delete order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /orders/{orderId}/bids:
+    get:
+      operationId: listOrderBids
+      tags: [bids]
+      summary: Get bids for an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bid"
+    post:
+      operationId: createBid
+      tags: [bids]
+      summary: Submit bid on an order
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BidInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bid"
+
+  /orders/{orderId}/bids/{bidId}:
+    patch:
+      operationId: updateBid
+      tags: [bids]
+      summary: Accept or reject a bid
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: bidId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BidUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bid"
+
+  /engineers/{engineerId}/bids:
+    get:
+      operationId: listEngineerBids
+      tags: [bids]
+      summary: Get bids submitted by an engineer
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Bid"
+
+  /reviews:
+    post:
+      operationId: createReview
+      tags: [reviews]
+      summary: Create review
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Review"
+
+  /engineers/{engineerId}/reviews:
+    get:
+      operationId: listEngineerReviews
+      tags: [reviews]
+      summary: Get reviews for an engineer
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Review"
+
+  /chats:
+    get:
+      operationId: listChats
+      tags: [chat]
+      summary: List chat rooms for current user
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatRoom"
+    post:
+      operationId: createChatRoom
+      tags: [chat]
+      summary: Create or get chat room
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRoomInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatRoom"
+
+  /chats/{roomId}/messages:
+    get:
+      operationId: listMessages
+      tags: [chat]
+      summary: Get messages in a chat room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: sendMessage
+      tags: [chat]
+      summary: Send message
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /stats/summary:
+    get:
+      operationId: getStatsSummary
+      tags: [stats]
+      summary: Platform stats summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsSummary"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [admin]
+      summary: Admin dashboard stats
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [admin]
+      summary: List all users (admin)
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserList"
+
+  /admin/users/{userId}:
+    patch:
+      operationId: updateAdminUser
+      tags: [admin]
+      summary: Update user (admin)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /admin/orders:
+    get:
+      operationId: listAdminOrders
+      tags: [admin]
+      summary: List all orders (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderList"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +659,412 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+        phone:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, name, email, role, createdAt]
+
+    UserList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    RegisterInput:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+        phone:
+          type: string
+      required: [name, email, password, role]
+
+    LoginInput:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    AuthResult:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        token:
+          type: string
+      required: [user, token]
+
+    Engineer:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        user:
+          $ref: "#/components/schemas/User"
+        registryNumber:
+          type: string
+        specializations:
+          type: array
+          items:
+            type: string
+        region:
+          type: string
+        experience:
+          type: integer
+        bio:
+          type: ["string", "null"]
+        isVerified:
+          type: boolean
+        rating:
+          type: number
+        reviewCount:
+          type: integer
+        completedOrders:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, userId, user, registryNumber, specializations, region, experience, isVerified, rating, reviewCount, completedOrders, createdAt]
+
+    EngineerList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Engineer"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    EngineerUpdate:
+      type: object
+      properties:
+        specializations:
+          type: array
+          items:
+            type: string
+        region:
+          type: string
+        experience:
+          type: integer
+        bio:
+          type: string
+        phone:
+          type: string
+
+    VerifyInput:
+      type: object
+      properties:
+        registryNumber:
+          type: string
+      required: [registryNumber]
+
+    VerifyResult:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        engineerName:
+          type: ["string", "null"]
+        message:
+          type: string
+      required: [isValid, message]
+
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        customerId:
+          type: integer
+        customer:
+          $ref: "#/components/schemas/User"
+        title:
+          type: string
+        description:
+          type: string
+        serviceType:
+          type: string
+        region:
+          type: string
+        budget:
+          type: ["number", "null"]
+        deadline:
+          type: ["string", "null"]
+        status:
+          type: string
+        bidCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, customerId, customer, title, description, serviceType, region, status, bidCount, createdAt]
+
+    OrderList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Order"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    OrderInput:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        serviceType:
+          type: string
+        region:
+          type: string
+        budget:
+          type: number
+        deadline:
+          type: string
+      required: [title, description, serviceType, region]
+
+    OrderUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+        budget:
+          type: number
+        deadline:
+          type: string
+
+    Bid:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        order:
+          $ref: "#/components/schemas/Order"
+        engineerId:
+          type: integer
+        engineer:
+          $ref: "#/components/schemas/Engineer"
+        message:
+          type: string
+        price:
+          type: ["number", "null"]
+        status:
+          type: string
+        createdAt:
+          type: string
+      required: [id, orderId, order, engineerId, engineer, message, status, createdAt]
+
+    BidInput:
+      type: object
+      properties:
+        message:
+          type: string
+        price:
+          type: number
+      required: [message]
+
+    BidUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+      required: [status]
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        authorId:
+          type: integer
+        author:
+          $ref: "#/components/schemas/User"
+        engineerId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required: [id, orderId, authorId, author, engineerId, rating, createdAt]
+
+    ReviewInput:
+      type: object
+      properties:
+        orderId:
+          type: integer
+        engineerId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: string
+      required: [orderId, engineerId, rating]
+
+    ChatRoom:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: ["integer", "null"]
+        order:
+          $ref: "#/components/schemas/Order"
+        customerId:
+          type: integer
+        customer:
+          $ref: "#/components/schemas/User"
+        engineerId:
+          type: integer
+        engineer:
+          $ref: "#/components/schemas/Engineer"
+        lastMessage:
+          type: ["string", "null"]
+        lastMessageAt:
+          type: ["string", "null"]
+        unreadCount:
+          type: integer
+        createdAt:
+          type: string
+      required: [id, customerId, customer, engineerId, engineer, unreadCount, createdAt]
+
+    ChatRoomInput:
+      type: object
+      properties:
+        engineerId:
+          type: integer
+        orderId:
+          type: integer
+      required: [engineerId]
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        roomId:
+          type: integer
+        senderId:
+          type: integer
+        sender:
+          $ref: "#/components/schemas/User"
+        text:
+          type: string
+        createdAt:
+          type: string
+      required: [id, roomId, senderId, sender, text, createdAt]
+
+    MessageInput:
+      type: object
+      properties:
+        text:
+          type: string
+      required: [text]
+
+    StatsSummary:
+      type: object
+      properties:
+        totalEngineers:
+          type: integer
+        verifiedEngineers:
+          type: integer
+        totalOrders:
+          type: integer
+        completedOrders:
+          type: integer
+        totalCustomers:
+          type: integer
+      required: [totalEngineers, verifiedEngineers, totalOrders, completedOrders, totalCustomers]
+
+    AdminStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalEngineers:
+          type: integer
+        totalCustomers:
+          type: integer
+        totalOrders:
+          type: integer
+        openOrders:
+          type: integer
+        completedOrders:
+          type: integer
+        totalRevenue:
+          type: number
+        newUsersThisMonth:
+          type: integer
+      required: [totalUsers, totalEngineers, totalCustomers, totalOrders, openOrders, completedOrders, totalRevenue, newUsersThisMonth]
+
+    AdminUserUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+        isBlocked:
+          type: boolean
