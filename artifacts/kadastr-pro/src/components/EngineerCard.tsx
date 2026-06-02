@@ -1,78 +1,170 @@
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import StarRating from "./StarRating";
-import { ShieldCheck, MapPin, Briefcase, MessageSquare } from "lucide-react";
-import type { Engineer } from "@workspace/api-client-react";
+import { ShieldCheck, MapPin, Briefcase, MessageSquare, Clock, Banknote, Award } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useCreateChatRoom, getListChatsQueryKey, type Engineer } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 interface EngineerCardProps {
   engineer: Engineer;
 }
 
 export default function EngineerCard({ engineer }: EngineerCardProps) {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const createChat = useCreateChatRoom({
+    mutation: {
+      onSuccess: (room) => {
+        queryClient.invalidateQueries({ queryKey: getListChatsQueryKey() });
+        setLocation(`/chat/${room.id}`);
+      },
+      onError: () => toast({ title: "Ошибка", description: "Не удалось открыть чат", variant: "destructive" }),
+    },
+  });
+
+  const handleChat = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) { setLocation("/auth/login"); return; }
+    createChat.mutate({ data: { engineerId: engineer.id } });
+  };
+
+  const specs = engineer.specializations as string[];
+  const regions = (engineer as unknown as { regions?: string[] }).regions ?? [engineer.region];
+
   return (
-    <Card className="hover:shadow-md transition-shadow" data-testid={`card-engineer-${engineer.id}`}>
-      <CardContent className="p-5">
-        <div className="flex items-start gap-4">
-          <Avatar className="w-12 h-12 flex-shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-              {engineer.user.name.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/engineers/${engineer.id}`}>
-                <span className="font-semibold text-foreground hover:text-primary transition-colors cursor-pointer" data-testid={`text-engineer-name-${engineer.id}`}>
-                  {engineer.user.name}
-                </span>
-              </Link>
-              {engineer.isVerified && (
-                <Badge variant="secondary" className="bg-green-50 text-green-700 border-green-200 gap-1 text-xs px-1.5 py-0" data-testid={`badge-verified-${engineer.id}`}>
-                  <ShieldCheck className="w-3 h-3" /> Проверен
-                </Badge>
+    <Card
+      className="group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-border/60 overflow-hidden"
+      data-testid={`card-engineer-${engineer.id}`}
+    >
+      <CardContent className="p-0">
+        {/* Top section */}
+        <div className="p-5 pb-4">
+          <div className="flex items-start gap-4">
+            {/* Avatar with online indicator */}
+            <div className="relative flex-shrink-0">
+              <Avatar className="w-16 h-16 ring-2 ring-border">
+                <AvatarImage src={engineer.user.avatarUrl ?? undefined} alt={engineer.user.name} />
+                <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/40 text-primary font-bold text-lg">
+                  {engineer.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              {engineer.isOnline && (
+                <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full" data-testid={`indicator-online-${engineer.id}`} />
               )}
             </div>
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-              <MapPin className="w-3 h-3" />
-              <span data-testid={`text-region-${engineer.id}`}>{engineer.region}</span>
-            </div>
-            <div className="flex items-center gap-3 mt-2">
-              <StarRating rating={engineer.rating} />
-              <span className="text-xs text-muted-foreground" data-testid={`text-reviews-${engineer.id}`}>
-                {engineer.reviewCount} отзывов
-              </span>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <Briefcase className="w-3 h-3" />
-                {engineer.completedOrders} заказов
-              </span>
-            </div>
-            {engineer.specializations.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-3">
-                {engineer.specializations.slice(0, 3).map((s) => (
-                  <Badge key={s} variant="secondary" className="text-xs px-2 py-0" data-testid={`badge-spec-${engineer.id}`}>
-                    {s}
-                  </Badge>
-                ))}
-                {engineer.specializations.length > 3 && (
-                  <Badge variant="secondary" className="text-xs px-2 py-0">
-                    +{engineer.specializations.length - 3}
-                  </Badge>
+
+            {/* Name + badges */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-1">
+                <Link href={`/engineers/${engineer.id}`}>
+                  <h3 className="font-bold text-base text-foreground hover:text-primary transition-colors leading-tight cursor-pointer" data-testid={`text-engineer-name-${engineer.id}`}>
+                    {engineer.user.name}
+                  </h3>
+                </Link>
+              </div>
+
+              <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {engineer.isVerified && (
+                  <div className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5" data-testid={`badge-verified-${engineer.id}`}>
+                    <ShieldCheck className="w-3 h-3" /> Росреестр
+                  </div>
+                )}
+                {engineer.isOnline ? (
+                  <span className="text-xs text-emerald-600 font-medium">● Онлайн</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">● Офлайн</span>
                 )}
               </div>
-            )}
+
+              {/* Rating row */}
+              <div className="flex items-center gap-2 mt-2">
+                <StarRating rating={engineer.rating} size="sm" />
+                <span className="text-xs text-muted-foreground" data-testid={`text-reviews-${engineer.id}`}>
+                  {engineer.reviewCount} {pluralReviews(engineer.reviewCount)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats row */}
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-dashed">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Award className="w-3.5 h-3.5 text-amber-500" />
+              <span><span className="font-semibold text-foreground">{engineer.experience}</span> лет</span>
+            </div>
+            <div className="w-px h-3 bg-border" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Briefcase className="w-3.5 h-3.5 text-blue-500" />
+              <span><span className="font-semibold text-foreground">{engineer.completedOrders}</span> заказов</span>
+            </div>
+            <div className="w-px h-3 bg-border" />
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5 text-violet-500" />
+              <span>{engineer.responseTime}</span>
+            </div>
           </div>
         </div>
-        <div className="flex gap-2 mt-4">
+
+        {/* Specializations */}
+        {specs.length > 0 && (
+          <div className="px-5 pb-3 flex flex-wrap gap-1.5">
+            {specs.slice(0, 3).map((s: string) => (
+              <Badge key={s} variant="secondary" className="text-xs px-2 py-0.5 bg-muted/60 font-normal" data-testid={`badge-spec-${engineer.id}`}>
+                {s}
+              </Badge>
+            ))}
+            {specs.length > 3 && (
+              <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-muted/60 font-normal">
+                +{specs.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Region + price */}
+        <div className="px-5 pb-4 flex items-center justify-between">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <MapPin className="w-3 h-3" />
+            <span data-testid={`text-region-${engineer.id}`}>{engineer.region}</span>
+          </div>
+          {engineer.priceFrom && (
+            <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+              <span data-testid={`text-price-${engineer.id}`}>от {engineer.priceFrom.toLocaleString("ru-RU")} ₽</span>
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-4 pb-4 flex gap-2">
           <Link href={`/engineers/${engineer.id}`} className="flex-1" data-testid={`link-engineer-profile-${engineer.id}`}>
-            <Button variant="outline" size="sm" className="w-full">Профиль</Button>
+            <Button variant="outline" size="sm" className="w-full text-sm font-medium">Профиль</Button>
           </Link>
-          <Button variant="default" size="sm" className="flex items-center gap-1" data-testid={`button-chat-${engineer.id}`}>
+          <Button
+            size="sm"
+            className="flex-1 gap-1.5 text-sm font-medium"
+            onClick={handleChat}
+            disabled={createChat.isPending}
+            data-testid={`button-chat-${engineer.id}`}
+          >
             <MessageSquare className="w-3.5 h-3.5" /> Написать
           </Button>
         </div>
       </CardContent>
     </Card>
   );
+}
+
+function pluralReviews(n: number) {
+  if (n % 10 === 1 && n % 100 !== 11) return "отзыв";
+  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "отзыва";
+  return "отзывов";
 }

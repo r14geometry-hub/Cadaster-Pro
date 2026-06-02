@@ -30,6 +30,7 @@ export * from './order';
 export * from './orderInput';
 export * from './orderList';
 export * from './orderUpdate';
+export * from './portfolioItem';
 export * from './registerInput';
 export * from './review';
 export * from './reviewInput';

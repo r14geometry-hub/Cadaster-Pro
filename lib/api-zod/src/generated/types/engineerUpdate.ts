@@ -5,11 +5,17 @@
  * КадастрПро API
  * OpenAPI spec version: 0.1.0
  */
+import type { PortfolioItem } from './portfolioItem';
 
 export interface EngineerUpdate {
   specializations?: string[];
   region?: string;
+  regions?: string[];
   experience?: number;
   bio?: string;
   phone?: string;
+  responseTime?: string;
+  priceFrom?: number;
+  isOnline?: boolean;
+  portfolioItems?: PortfolioItem[];
 }

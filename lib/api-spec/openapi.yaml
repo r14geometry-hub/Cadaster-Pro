@@ -683,6 +683,8 @@ components:
           type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
+        isBlocked:
+          type: ["string", "null"]
         createdAt:
           type: string
       required: [id, name, email, role, createdAt]
@@ -735,6 +737,23 @@ components:
           type: string
       required: [user, token]
 
+    PortfolioItem:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        region:
+          type: string
+        year:
+          type: integer
+        area:
+          type: ["string", "null"]
+      required: [title, description, type, region, year]
+
     Engineer:
       type: object
       properties:
@@ -752,11 +771,17 @@ components:
             type: string
         region:
           type: string
+        regions:
+          type: array
+          items:
+            type: string
         experience:
           type: integer
         bio:
           type: ["string", "null"]
         isVerified:
+          type: boolean
+        isOnline:
           type: boolean
         rating:
           type: number
@@ -764,9 +789,17 @@ components:
           type: integer
         completedOrders:
           type: integer
+        responseTime:
+          type: ["string", "null"]
+        priceFrom:
+          type: ["integer", "null"]
+        portfolioItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioItem"
         createdAt:
           type: string
-      required: [id, userId, user, registryNumber, specializations, region, experience, isVerified, rating, reviewCount, completedOrders, createdAt]
+      required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, rating, reviewCount, completedOrders, portfolioItems, createdAt]
 
     EngineerList:
       type: object
@@ -792,12 +825,26 @@ components:
             type: string
         region:
           type: string
+        regions:
+          type: array
+          items:
+            type: string
         experience:
           type: integer
         bio:
           type: string
         phone:
           type: string
+        responseTime:
+          type: string
+        priceFrom:
+          type: integer
+        isOnline:
+          type: boolean
+        portfolioItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PortfolioItem"
 
     VerifyInput:
       type: object

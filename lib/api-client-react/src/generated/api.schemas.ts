@@ -22,6 +22,8 @@ export interface User {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  isBlocked?: string | null;
   createdAt: string;
 }
 
@@ -50,6 +52,16 @@ export interface AuthResult {
   token: string;
 }
 
+export interface PortfolioItem {
+  title: string;
+  description: string;
+  type: string;
+  region: string;
+  year: number;
+  /** @nullable */
+  area?: string | null;
+}
+
 export interface Engineer {
   id: number;
   userId: number;
@@ -57,13 +69,20 @@ export interface Engineer {
   registryNumber: string;
   specializations: string[];
   region: string;
+  regions: string[];
   experience: number;
   /** @nullable */
   bio?: string | null;
   isVerified: boolean;
+  isOnline: boolean;
   rating: number;
   reviewCount: number;
   completedOrders: number;
+  /** @nullable */
+  responseTime?: string | null;
+  /** @nullable */
+  priceFrom?: number | null;
+  portfolioItems: PortfolioItem[];
   createdAt: string;
 }
 
@@ -77,9 +96,14 @@ export interface EngineerList {
 export interface EngineerUpdate {
   specializations?: string[];
   region?: string;
+  regions?: string[];
   experience?: number;
   bio?: string;
   phone?: string;
+  responseTime?: string;
+  priceFrom?: number;
+  isOnline?: boolean;
+  portfolioItems?: PortfolioItem[];
 }
 
 export interface VerifyInput {

@@ -1,0 +1,2 @@
+- [Engineer schema extensions](engineer-schema.md) — added portfolioItems/regions/isOnline/responseTime/priceFrom as new columns; stored as JSON text.
+- [OpenAPI User schema](openapi-user.md) — must include isBlocked field or AdminPage.tsx gets TS2339 errors; codegen is the source of truth.

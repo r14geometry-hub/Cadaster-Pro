@@ -5,6 +5,7 @@
  * КадастрПро API
  * OpenAPI spec version: 0.1.0
  */
+import type { PortfolioItem } from './portfolioItem';
 import type { User } from './user';
 
 export interface Engineer {
@@ -14,12 +15,19 @@ export interface Engineer {
   registryNumber: string;
   specializations: string[];
   region: string;
+  regions: string[];
   experience: number;
   /** @nullable */
   bio?: string | null;
   isVerified: boolean;
+  isOnline: boolean;
   rating: number;
   reviewCount: number;
   completedOrders: number;
+  /** @nullable */
+  responseTime?: string | null;
+  /** @nullable */
+  priceFrom?: number | null;
+  portfolioItems: PortfolioItem[];
   createdAt: string;
 }

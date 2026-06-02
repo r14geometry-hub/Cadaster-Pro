@@ -44,6 +44,7 @@ export const LoginResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "token": zod.string()
@@ -68,6 +69,7 @@ export const GetMeResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -95,17 +97,30 @@ export const ListEngineersResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 })),
   "total": zod.number(),
@@ -127,17 +142,30 @@ export const ListTopEngineersResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 })
 export const ListTopEngineersResponse = zod.array(ListTopEngineersResponseItem)
@@ -156,17 +184,30 @@ export const GetMyEngineerProfileResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 })
 
@@ -177,9 +218,21 @@ export const GetMyEngineerProfileResponse = zod.object({
 export const UpdateMyEngineerProfileBody = zod.object({
   "specializations": zod.array(zod.string()).optional(),
   "region": zod.string().optional(),
+  "regions": zod.array(zod.string()).optional(),
   "experience": zod.number().optional(),
   "bio": zod.string().optional(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "responseTime": zod.string().optional(),
+  "priceFrom": zod.number().optional(),
+  "isOnline": zod.boolean().optional(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})).optional()
 })
 
 export const UpdateMyEngineerProfileResponse = zod.object({
@@ -192,17 +245,30 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 })
 
@@ -238,17 +304,30 @@ export const GetEngineerResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 })
 
@@ -276,6 +355,7 @@ export const ListOrdersResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -320,6 +400,7 @@ export const ListRecentOrdersResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -352,6 +433,7 @@ export const GetOrderResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -391,6 +473,7 @@ export const UpdateOrderResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -437,6 +520,7 @@ export const ListOrderBidsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -460,17 +544,30 @@ export const ListOrderBidsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -519,6 +616,7 @@ export const UpdateBidResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -542,17 +640,30 @@ export const UpdateBidResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -582,6 +693,7 @@ export const ListEngineerBidsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -605,17 +717,30 @@ export const ListEngineerBidsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -655,6 +780,7 @@ export const ListEngineerReviewsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "engineerId": zod.number(),
@@ -681,6 +807,7 @@ export const ListChatsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -701,6 +828,7 @@ export const ListChatsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "engineerId": zod.number(),
@@ -714,17 +842,30 @@ export const ListChatsResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 }),
   "lastMessage": zod.string().nullish(),
@@ -756,6 +897,7 @@ export const CreateChatRoomResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),
@@ -776,6 +918,7 @@ export const CreateChatRoomResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "engineerId": zod.number(),
@@ -789,17 +932,30 @@ export const CreateChatRoomResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "registryNumber": zod.string(),
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
+  "regions": zod.array(zod.string()),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
+  "isOnline": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
+  "responseTime": zod.string().nullish(),
+  "priceFrom": zod.number().nullish(),
+  "portfolioItems": zod.array(zod.object({
+  "title": zod.string(),
+  "description": zod.string(),
+  "type": zod.string(),
+  "region": zod.string(),
+  "year": zod.number(),
+  "area": zod.string().nullish()
+})),
   "createdAt": zod.string()
 }),
   "lastMessage": zod.string().nullish(),
@@ -827,6 +983,7 @@ export const ListMessagesResponseItem = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "text": zod.string(),
@@ -890,6 +1047,7 @@ export const ListAdminUsersResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 })),
   "total": zod.number(),
@@ -917,6 +1075,7 @@ export const UpdateAdminUserResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 })
 
@@ -940,6 +1099,7 @@ export const ListAdminOrdersResponse = zod.object({
   "role": zod.string(),
   "phone": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "title": zod.string(),

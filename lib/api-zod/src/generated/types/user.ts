@@ -15,5 +15,7 @@ export interface User {
   phone?: string | null;
   /** @nullable */
   avatarUrl?: string | null;
+  /** @nullable */
+  isBlocked?: string | null;
   createdAt: string;
 }
