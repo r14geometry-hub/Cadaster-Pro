@@ -8,6 +8,7 @@ import HomePage from "@/pages/HomePage";
 import EngineersPage from "@/pages/EngineersPage";
 import EngineerCardPage from "@/pages/EngineerCardPage";
 import CreateOrderPage from "@/pages/CreateOrderPage";
+import OrderDetailPage from "@/pages/OrderDetailPage";
 import CustomerDashboardPage from "@/pages/CustomerDashboardPage";
 import EngineerDashboardPage from "@/pages/EngineerDashboardPage";
 import ChatPage from "@/pages/ChatPage";
@@ -31,6 +32,7 @@ function Router() {
         <Route path="/engineers" component={EngineersPage} />
         <Route path="/engineers/:id" component={EngineerCardPage} />
         <Route path="/orders/create" component={CreateOrderPage} />
+        <Route path="/orders/:orderId" component={OrderDetailPage} />
         <Route path="/dashboard/customer" component={CustomerDashboardPage} />
         <Route path="/dashboard/engineer" component={EngineerDashboardPage} />
         <Route path="/chat" component={ChatPage} />

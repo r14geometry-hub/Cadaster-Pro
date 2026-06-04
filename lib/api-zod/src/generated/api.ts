@@ -383,7 +383,8 @@ export const CreateOrderBody = zod.object({
   "serviceType": zod.string(),
   "region": zod.string(),
   "budget": zod.number().optional(),
-  "deadline": zod.string().optional()
+  "deadline": zod.string().optional(),
+  "asDraft": zod.boolean().optional()
 })
 
 
@@ -414,6 +415,65 @@ export const ListRecentOrdersResponseItem = zod.object({
   "createdAt": zod.string()
 })
 export const ListRecentOrdersResponse = zod.array(ListRecentOrdersResponseItem)
+
+
+/**
+ * @summary Mark order as completed and optionally submit a review
+ */
+export const CompleteOrderParams = zod.object({
+  "orderId": zod.coerce.number()
+})
+
+export const CompleteOrderBody = zod.object({
+  "engineerId": zod.number(),
+  "rating": zod.number().optional(),
+  "comment": zod.string().optional()
+})
+
+export const CompleteOrderResponse = zod.object({
+  "order": zod.object({
+  "id": zod.number(),
+  "customerId": zod.number(),
+  "customer": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "title": zod.string(),
+  "description": zod.string(),
+  "serviceType": zod.string(),
+  "region": zod.string(),
+  "budget": zod.number().nullish(),
+  "deadline": zod.string().nullish(),
+  "status": zod.string(),
+  "bidCount": zod.number(),
+  "createdAt": zod.string()
+}),
+  "review": zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "authorId": zod.number(),
+  "author": zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "phone": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
+  "createdAt": zod.string()
+}),
+  "engineerId": zod.number(),
+  "rating": zod.number(),
+  "comment": zod.string().nullish(),
+  "createdAt": zod.string()
+}).optional()
+})
 
 
 /**
@@ -572,6 +632,7 @@ export const ListOrderBidsResponseItem = zod.object({
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
+  "proposedDeadline": zod.string().nullish(),
   "status": zod.string(),
   "createdAt": zod.string()
 })
@@ -587,7 +648,8 @@ export const CreateBidParams = zod.object({
 
 export const CreateBidBody = zod.object({
   "message": zod.string(),
-  "price": zod.number().optional()
+  "price": zod.number().optional(),
+  "proposedDeadline": zod.string().optional()
 })
 
 
@@ -668,6 +730,7 @@ export const UpdateBidResponse = zod.object({
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
+  "proposedDeadline": zod.string().nullish(),
   "status": zod.string(),
   "createdAt": zod.string()
 })
@@ -745,6 +808,7 @@ export const ListEngineerBidsResponseItem = zod.object({
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
+  "proposedDeadline": zod.string().nullish(),
   "status": zod.string(),
   "createdAt": zod.string()
 })
@@ -966,6 +1030,18 @@ export const CreateChatRoomResponse = zod.object({
 
 
 /**
+ * @summary Mark all messages in a room as read
+ */
+export const MarkChatReadParams = zod.object({
+  "roomId": zod.coerce.number()
+})
+
+export const MarkChatReadResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Get messages in a chat room
  */
 export const ListMessagesParams = zod.object({
@@ -987,6 +1063,7 @@ export const ListMessagesResponseItem = zod.object({
   "createdAt": zod.string()
 }),
   "text": zod.string(),
+  "isRead": zod.boolean(),
   "createdAt": zod.string()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)

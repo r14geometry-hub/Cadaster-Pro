@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, bidsTable } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable } from "@workspace/db";
+import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
 
-function parseSpecializations(s: string): string[] {
+function parseJson(s: string): unknown[] {
   try { return JSON.parse(s); } catch { return []; }
 }
 
@@ -21,15 +21,30 @@ async function formatBid(bid: typeof bidsTable.$inferSelect) {
   return {
     ...bid,
     price: bid.price ?? null,
-    order: { ...order, customer: { ...safeCustomer, phone: safeCustomer.phone ?? null, avatarUrl: safeCustomer.avatarUrl ?? null }, budget: order.budget ?? null, deadline: order.deadline ?? null },
-    engineer: { ...eng, user: { ...safeEngUser, phone: safeEngUser.phone ?? null, avatarUrl: safeEngUser.avatarUrl ?? null }, specializations: parseSpecializations(eng.specializations), bio: eng.bio ?? null },
+    proposedDeadline: bid.proposedDeadline ?? null,
+    order: {
+      ...order,
+      customer: { ...safeCustomer, phone: safeCustomer.phone ?? null, avatarUrl: safeCustomer.avatarUrl ?? null },
+      budget: order.budget ?? null,
+      deadline: order.deadline ?? null,
+    },
+    engineer: {
+      ...eng,
+      user: { ...safeEngUser, phone: safeEngUser.phone ?? null, avatarUrl: safeEngUser.avatarUrl ?? null },
+      specializations: parseJson(eng.specializations) as string[],
+      bio: eng.bio ?? null,
+      responseTime: eng.responseTime ?? null,
+      priceFrom: eng.priceFrom ?? null,
+    },
   };
 }
 
 router.get("/orders/:orderId/bids", async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId);
-    const bids = await db.select().from(bidsTable).where(eq(bidsTable.orderId, orderId)).orderBy(sql`${bidsTable.createdAt} desc`);
+    const bids = await db.select().from(bidsTable)
+      .where(eq(bidsTable.orderId, orderId))
+      .orderBy(sql`${bidsTable.createdAt} desc`);
     res.json(await Promise.all(bids.map(formatBid)));
   } catch (err) {
     req.log.error(err);
@@ -40,17 +55,30 @@ router.get("/orders/:orderId/bids", async (req, res) => {
 router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
   try {
     const orderId = parseInt(req.params.orderId);
-    const { message, price } = req.body;
+    const { message, price, proposedDeadline } = req.body;
     if (!message) { res.status(400).json({ error: "Message required" }); return; }
 
-    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
+    const [eng] = await db.select().from(engineersTable)
+      .where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(403).json({ error: "Only engineers can bid" }); return; }
 
+    // Check not already bid on this order
+    const existing = await db.select().from(bidsTable)
+      .where(and(eq(bidsTable.orderId, orderId), eq(bidsTable.engineerId, eng.id))).limit(1);
+    if (existing.length > 0) {
+      res.status(409).json({ error: "Already submitted a bid on this order" }); return;
+    }
+
     const [bid] = await db.insert(bidsTable).values({
-      orderId, engineerId: eng.id, message, price: price ?? null, status: "pending",
+      orderId, engineerId: eng.id, message,
+      price: price ?? null,
+      proposedDeadline: proposedDeadline ?? null,
+      status: "pending",
     }).returning();
 
-    await db.update(ordersTable).set({ bidCount: sql`${ordersTable.bidCount} + 1` }).where(eq(ordersTable.id, orderId));
+    await db.update(ordersTable)
+      .set({ bidCount: sql`${ordersTable.bidCount} + 1` })
+      .where(eq(ordersTable.id, orderId));
 
     res.status(201).json(await formatBid(bid));
   } catch (err) {
@@ -62,13 +90,51 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
 router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
   try {
     const bidId = parseInt(req.params.bidId);
+    const orderId = parseInt(req.params.orderId);
     const { status } = req.body;
     if (!status) { res.status(400).json({ error: "Status required" }); return; }
-    const [updated] = await db.update(bidsTable).set({ status }).where(eq(bidsTable.id, bidId)).returning();
+
+    const [updated] = await db.update(bidsTable)
+      .set({ status })
+      .where(eq(bidsTable.id, bidId))
+      .returning();
     if (!updated) { res.status(404).json({ error: "Bid not found" }); return; }
 
     if (status === "accepted") {
-      await db.update(ordersTable).set({ status: "in_progress" }).where(eq(ordersTable.id, updated.orderId));
+      // Move order to in_progress
+      await db.update(ordersTable)
+        .set({ status: "in_progress" })
+        .where(eq(ordersTable.id, orderId));
+
+      // Reject all other pending bids on this order
+      await db.update(bidsTable)
+        .set({ status: "rejected" })
+        .where(and(
+          eq(bidsTable.orderId, orderId),
+          eq(bidsTable.status, "pending"),
+          ne(bidsTable.id, bidId)
+        ));
+
+      // Auto-create chat room linked to this order (get customer from order)
+      const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+      const [eng] = await db.select().from(engineersTable)
+        .where(eq(engineersTable.id, updated.engineerId)).limit(1);
+
+      // Only create if room doesn't already exist for this order + engineer pair
+      const existingRoom = await db.select().from(chatRoomsTable)
+        .where(and(
+          eq(chatRoomsTable.orderId, orderId),
+          eq(chatRoomsTable.engineerId, updated.engineerId)
+        )).limit(1);
+
+      if (existingRoom.length === 0) {
+        await db.insert(chatRoomsTable).values({
+          orderId,
+          customerId: order.customerId,
+          engineerId: updated.engineerId,
+          lastMessageAt: null,
+        });
+      }
     }
 
     res.json(await formatBid(updated));
@@ -81,7 +147,9 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
 router.get("/engineers/:engineerId/bids", async (req, res) => {
   try {
     const engineerId = parseInt(req.params.engineerId);
-    const bids = await db.select().from(bidsTable).where(eq(bidsTable.engineerId, engineerId)).orderBy(sql`${bidsTable.createdAt} desc`);
+    const bids = await db.select().from(bidsTable)
+      .where(eq(bidsTable.engineerId, engineerId))
+      .orderBy(sql`${bidsTable.createdAt} desc`);
     res.json(await Promise.all(bids.map(formatBid)));
   } catch (err) {
     req.log.error(err);

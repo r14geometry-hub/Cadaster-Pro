@@ -13,4 +13,5 @@ export interface OrderInput {
   region: string;
   budget?: number;
   deadline?: string;
+  asDraft?: boolean;
 }

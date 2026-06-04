@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, reviewsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, reviewsTable } from "@workspace/db";
 import { eq, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
@@ -11,6 +11,8 @@ async function formatReview(review: typeof reviewsTable.$inferSelect) {
   return {
     ...review,
     comment: review.comment ?? null,
+    serviceType: review.serviceType ?? null,
+    isVerifiedPurchase: review.isVerifiedPurchase ?? true,
     author: { ...safeAuthor, phone: safeAuthor.phone ?? null, avatarUrl: safeAuthor.avatarUrl ?? null },
   };
 }
@@ -18,16 +20,22 @@ async function formatReview(review: typeof reviewsTable.$inferSelect) {
 router.post("/reviews", requireAuth, async (req, res) => {
   try {
     const { orderId, engineerId, rating, comment } = req.body;
-    if (!orderId || !engineerId || !rating) { res.status(400).json({ error: "Missing fields" }); return; }
+    if (!orderId || !engineerId || !rating) {
+      res.status(400).json({ error: "Missing fields" }); return;
+    }
     const [review] = await db.insert(reviewsTable).values({
-      orderId, engineerId, authorId: req.user!.userId, rating, comment: comment ?? null,
+      orderId, engineerId, authorId: req.user!.userId,
+      rating, comment: comment ?? null,
+      isVerifiedPurchase: true,
     }).returning();
 
-    const engineerReviews = await db.select().from(reviewsTable).where(eq(reviewsTable.engineerId, engineerId));
-    const avgRating = engineerReviews.reduce((sum, r) => sum + r.rating, 0) / engineerReviews.length;
+    // Recalculate engineer rating from all reviews
+    const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
+      .where(eq(reviewsTable.engineerId, engineerId));
+    const avgRating = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
     await db.update(engineersTable).set({
       rating: Math.round(avgRating * 10) / 10,
-      reviewCount: engineerReviews.length,
+      reviewCount: allReviews.length,
     }).where(eq(engineersTable.id, engineerId));
 
     res.status(201).json(await formatReview(review));
@@ -40,7 +48,9 @@ router.post("/reviews", requireAuth, async (req, res) => {
 router.get("/engineers/:engineerId/reviews", async (req, res) => {
   try {
     const engineerId = parseInt(req.params.engineerId);
-    const reviews = await db.select().from(reviewsTable).where(eq(reviewsTable.engineerId, engineerId)).orderBy(sql`${reviewsTable.createdAt} desc`);
+    const reviews = await db.select().from(reviewsTable)
+      .where(eq(reviewsTable.engineerId, engineerId))
+      .orderBy(sql`${reviewsTable.createdAt} desc`);
     res.json(await Promise.all(reviews.map(formatReview)));
   } catch (err) {
     req.log.error(err);

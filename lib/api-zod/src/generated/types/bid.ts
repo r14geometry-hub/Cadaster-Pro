@@ -17,6 +17,8 @@ export interface Bid {
   message: string;
   /** @nullable */
   price?: number | null;
+  /** @nullable */
+  proposedDeadline?: string | null;
   status: string;
   createdAt: string;
 }

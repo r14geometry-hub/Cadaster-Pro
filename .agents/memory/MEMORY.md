@@ -1,2 +1,3 @@
-- [Engineer schema extensions](engineer-schema.md) — added portfolioItems/regions/isOnline/responseTime/priceFrom as new columns; stored as JSON text.
-- [OpenAPI User schema](openapi-user.md) — must include isBlocked field or AdminPage.tsx gets TS2339 errors; codegen is the source of truth.
+- [Engineer schema extensions](engineer-schema.md) — portfolioItems/regions/isOnline/responseTime/priceFrom stored as JSON text columns.
+- [OpenAPI User schema](openapi-user.md) — must include isBlocked field or AdminPage.tsx gets TS2339 errors.
+- [Marketplace workflow patterns](marketplace-workflow.md) — bid acceptance, auto-chat, unread counts, order completion flow.

@@ -1,19 +1,30 @@
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useListChats, getListChatsQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { MessageSquare } from "lucide-react";
 
 export default function ChatPage() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
   const { data: chats, isLoading } = useListChats({
     query: { enabled: !!user, queryKey: getListChatsQueryKey() },
   });
+
+  // Poll to refresh unread counts
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: getListChatsQueryKey() });
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [queryClient]);
 
   if (!user) {
     return (
@@ -26,39 +37,59 @@ export default function ChatPage() {
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
-      <h1 className="text-3xl font-bold text-foreground mb-8" data-testid="heading-chats">Сообщения</h1>
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground" data-testid="heading-chats">Сообщения</h1>
+        {chats && chats.reduce((s, c) => s + (c.unreadCount ?? 0), 0) > 0 && (
+          <span className="text-sm text-muted-foreground">
+            {chats.reduce((s, c) => s + (c.unreadCount ?? 0), 0)} непрочитанных
+          </span>
+        )}
+      </div>
       {isLoading ? (
         <div className="space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}</div>
       ) : chats && chats.length > 0 ? (
         <div className="space-y-2">
           {chats.map((chat) => {
             const other = user.role === "engineer" ? chat.customer : chat.engineer.user;
+            const unread = chat.unreadCount ?? 0;
             return (
               <Card
                 key={chat.id}
-                className="cursor-pointer hover:shadow-sm transition-shadow"
+                className={`cursor-pointer hover:shadow-sm transition-shadow ${unread > 0 ? "border-primary/30 bg-primary/5" : ""}`}
                 onClick={() => setLocation(`/chat/${chat.id}`)}
                 data-testid={`card-chat-${chat.id}`}
               >
                 <CardContent className="p-4 flex items-center gap-3">
-                  <Avatar className="w-12 h-12 flex-shrink-0">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {other.name.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative flex-shrink-0">
+                    <Avatar className="w-12 h-12">
+                      {(other as { avatarUrl?: string | null }).avatarUrl && (
+                        <AvatarImage src={(other as { avatarUrl: string }).avatarUrl} alt={other.name} />
+                      )}
+                      <AvatarFallback className={`font-semibold ${unread > 0 ? "bg-primary text-primary-foreground" : "bg-primary/10 text-primary"}`}>
+                        {other.name.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm" data-testid={`text-chat-name-${chat.id}`}>{other.name}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-sm ${unread > 0 ? "font-semibold" : "font-medium"}`} data-testid={`text-chat-name-${chat.id}`}>
+                        {other.name}
+                      </span>
                       {chat.lastMessageAt && (
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(chat.lastMessageAt).toLocaleDateString("ru-RU")}
+                        <span className="text-xs text-muted-foreground flex-shrink-0">
+                          {new Date(chat.lastMessageAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-muted-foreground truncate mt-0.5" data-testid={`text-chat-last-${chat.id}`}>
+                    <p className={`text-sm truncate mt-0.5 ${unread > 0 ? "text-foreground font-medium" : "text-muted-foreground"}`} data-testid={`text-chat-last-${chat.id}`}>
                       {chat.lastMessage ?? "Нет сообщений"}
                     </p>
                   </div>
+                  {unread > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-semibold rounded-full px-2 py-0.5 min-w-[22px] text-center flex-shrink-0">
+                      {unread}
+                    </span>
+                  )}
                 </CardContent>
               </Card>
             );

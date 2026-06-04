@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -7,12 +8,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { useCreateOrder, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, FileText, Send } from "lucide-react";
 
 const SERVICE_TYPES = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка", "Другое"];
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
@@ -33,6 +34,7 @@ export default function CreateOrderPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [submitType, setSubmitType] = useState<"publish" | "draft">("publish");
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -41,10 +43,14 @@ export default function CreateOrderPage() {
 
   const createOrder = useCreateOrder({
     mutation: {
-      onSuccess: () => {
+      onSuccess: (order) => {
         queryClient.invalidateQueries({ queryKey: getListOrdersQueryKey() });
-        toast({ title: "Заявка размещена", description: "Ожидайте откликов от инженеров" });
-        setLocation(user?.role === "customer" ? "/dashboard/customer" : "/");
+        if (order.status === "draft") {
+          toast({ title: "Черновик сохранён", description: "Опубликуйте заявку, когда будете готовы" });
+        } else {
+          toast({ title: "Заявка размещена", description: "Ожидайте откликов от инженеров" });
+        }
+        setLocation("/dashboard/customer");
       },
       onError: () => toast({ title: "Ошибка", description: "Не удалось разместить заявку", variant: "destructive" }),
     },
@@ -69,6 +75,7 @@ export default function CreateOrderPage() {
         region: values.region,
         budget: values.budget ? parseFloat(values.budget) : undefined,
         deadline: values.deadline || undefined,
+        asDraft: submitType === "draft",
       },
     });
   };
@@ -185,9 +192,29 @@ export default function CreateOrderPage() {
                   )}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={createOrder.isPending} data-testid="button-submit-order">
-                {createOrder.isPending ? "Размещаем..." : "Разместить заявку"}
-              </Button>
+              <div className="flex gap-3 pt-2">
+                <Button
+                  type="submit"
+                  className="flex-1 gap-1.5"
+                  disabled={createOrder.isPending}
+                  onClick={() => setSubmitType("publish")}
+                  data-testid="button-submit-order"
+                >
+                  <Send className="w-4 h-4" />
+                  {createOrder.isPending && submitType === "publish" ? "Размещаем..." : "Разместить заявку"}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="outline"
+                  className="gap-1.5"
+                  disabled={createOrder.isPending}
+                  onClick={() => setSubmitType("draft")}
+                  data-testid="button-save-draft"
+                >
+                  <FileText className="w-4 h-4" />
+                  {createOrder.isPending && submitType === "draft" ? "Сохраняем..." : "Черновик"}
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>

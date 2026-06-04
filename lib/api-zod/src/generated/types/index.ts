@@ -14,6 +14,8 @@ export * from './bidInput';
 export * from './bidUpdate';
 export * from './chatRoom';
 export * from './chatRoomInput';
+export * from './completeOrderInput';
+export * from './completeOrderResult';
 export * from './engineer';
 export * from './engineerList';
 export * from './engineerUpdate';

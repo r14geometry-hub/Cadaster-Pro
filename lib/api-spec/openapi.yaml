@@ -287,6 +287,31 @@ paths:
                 items:
                   $ref: "#/components/schemas/Order"
 
+  /orders/{orderId}/complete:
+    post:
+      operationId: completeOrder
+      tags: [orders]
+      summary: Mark order as completed and optionally submit a review
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteOrderInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteOrderResult"
+
   /orders/{orderId}:
     get:
       operationId: getOrder
@@ -512,6 +537,25 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ChatRoom"
+
+  /chats/{roomId}/read:
+    post:
+      operationId: markChatRead
+      tags: [chat]
+      summary: Mark all messages in a room as read
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
 
   /chats/{roomId}/messages:
     get:
@@ -923,7 +967,29 @@ components:
           type: number
         deadline:
           type: string
+        asDraft:
+          type: boolean
       required: [title, description, serviceType, region]
+
+    CompleteOrderInput:
+      type: object
+      properties:
+        engineerId:
+          type: integer
+        rating:
+          type: integer
+        comment:
+          type: string
+      required: [engineerId]
+
+    CompleteOrderResult:
+      type: object
+      properties:
+        order:
+          $ref: "#/components/schemas/Order"
+        review:
+          $ref: "#/components/schemas/Review"
+      required: [order]
 
     OrderUpdate:
       type: object
@@ -956,6 +1022,8 @@ components:
           type: string
         price:
           type: ["number", "null"]
+        proposedDeadline:
+          type: ["string", "null"]
         status:
           type: string
         createdAt:
@@ -969,6 +1037,8 @@ components:
           type: string
         price:
           type: number
+        proposedDeadline:
+          type: string
       required: [message]
 
     BidUpdate:
@@ -1061,9 +1131,11 @@ components:
           $ref: "#/components/schemas/User"
         text:
           type: string
+        isRead:
+          type: boolean
         createdAt:
           type: string
-      required: [id, roomId, senderId, sender, text, createdAt]
+      required: [id, roomId, senderId, sender, text, isRead, createdAt]
 
     MessageInput:
       type: object

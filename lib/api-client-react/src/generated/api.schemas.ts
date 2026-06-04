@@ -148,6 +148,30 @@ export interface OrderInput {
   region: string;
   budget?: number;
   deadline?: string;
+  asDraft?: boolean;
+}
+
+export interface CompleteOrderInput {
+  engineerId: number;
+  rating?: number;
+  comment?: string;
+}
+
+export interface Review {
+  id: number;
+  orderId: number;
+  authorId: number;
+  author: User;
+  engineerId: number;
+  rating: number;
+  /** @nullable */
+  comment?: string | null;
+  createdAt: string;
+}
+
+export interface CompleteOrderResult {
+  order: Order;
+  review?: Review;
 }
 
 export interface OrderUpdate {
@@ -167,6 +191,8 @@ export interface Bid {
   message: string;
   /** @nullable */
   price?: number | null;
+  /** @nullable */
+  proposedDeadline?: string | null;
   status: string;
   createdAt: string;
 }
@@ -174,22 +200,11 @@ export interface Bid {
 export interface BidInput {
   message: string;
   price?: number;
+  proposedDeadline?: string;
 }
 
 export interface BidUpdate {
   status: string;
-}
-
-export interface Review {
-  id: number;
-  orderId: number;
-  authorId: number;
-  author: User;
-  engineerId: number;
-  rating: number;
-  /** @nullable */
-  comment?: string | null;
-  createdAt: string;
 }
 
 export interface ReviewInput {
@@ -227,6 +242,7 @@ export interface Message {
   senderId: number;
   sender: User;
   text: string;
+  isRead: boolean;
   createdAt: string;
 }
 

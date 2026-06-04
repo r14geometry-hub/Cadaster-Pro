@@ -6,8 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface BidInput {
-  message: string;
-  price?: number;
-  proposedDeadline?: string;
+export interface CompleteOrderInput {
+  engineerId: number;
+  rating?: number;
+  comment?: string;
 }

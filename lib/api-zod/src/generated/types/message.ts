@@ -13,5 +13,6 @@ export interface Message {
   senderId: number;
   sender: User;
   text: string;
+  isRead: boolean;
   createdAt: string;
 }

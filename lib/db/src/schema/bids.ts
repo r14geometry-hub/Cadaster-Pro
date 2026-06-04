@@ -10,6 +10,7 @@ export const bidsTable = pgTable("bids", {
   engineerId: integer("engineer_id").notNull().references(() => engineersTable.id),
   message: text("message").notNull(),
   price: real("price"),
+  proposedDeadline: varchar("proposed_deadline", { length: 100 }),
   status: varchar("status", { length: 50 }).notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -28,6 +28,8 @@ import type {
   BidUpdate,
   ChatRoom,
   ChatRoomInput,
+  CompleteOrderInput,
+  CompleteOrderResult,
   Engineer,
   EngineerList,
   EngineerUpdate,
@@ -1121,6 +1123,78 @@ export function useListRecentOrders<TData = Awaited<ReturnType<typeof listRecent
 
 
 
+export const getCompleteOrderUrl = (orderId: number,) => {
+
+
+
+
+  return `/api/orders/${orderId}/complete`
+}
+
+/**
+ * @summary Mark order as completed and optionally submit a review
+ */
+export const completeOrder = async (orderId: number,
+    completeOrderInput: CompleteOrderInput, options?: RequestInit): Promise<CompleteOrderResult> => {
+
+  return customFetch<CompleteOrderResult>(getCompleteOrderUrl(orderId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      completeOrderInput,)
+  }
+);}
+
+
+
+
+export const getCompleteOrderMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrder>>, TError,{orderId: number;data: BodyType<CompleteOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof completeOrder>>, TError,{orderId: number;data: BodyType<CompleteOrderInput>}, TContext> => {
+
+const mutationKey = ['completeOrder'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof completeOrder>>, {orderId: number;data: BodyType<CompleteOrderInput>}> = (props) => {
+          const {orderId,data} = props ?? {};
+
+          return  completeOrder(orderId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CompleteOrderMutationResult = NonNullable<Awaited<ReturnType<typeof completeOrder>>>
+    export type CompleteOrderMutationBody = BodyType<CompleteOrderInput>
+    export type CompleteOrderMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark order as completed and optionally submit a review
+ */
+export const useCompleteOrder = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof completeOrder>>, TError,{orderId: number;data: BodyType<CompleteOrderInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof completeOrder>>,
+        TError,
+        {orderId: number;data: BodyType<CompleteOrderInput>},
+        TContext
+      > => {
+      return useMutation(getCompleteOrderMutationOptions(options));
+    }
+
 export const getGetOrderUrl = (orderId: number,) => {
 
 
@@ -1934,6 +2008,76 @@ export const useCreateChatRoom = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getCreateChatRoomMutationOptions(options));
+    }
+
+export const getMarkChatReadUrl = (roomId: number,) => {
+
+
+
+
+  return `/api/chats/${roomId}/read`
+}
+
+/**
+ * @summary Mark all messages in a room as read
+ */
+export const markChatRead = async (roomId: number, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getMarkChatReadUrl(roomId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getMarkChatReadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{roomId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{roomId: number}, TContext> => {
+
+const mutationKey = ['markChatRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markChatRead>>, {roomId: number}> = (props) => {
+          const {roomId} = props ?? {};
+
+          return  markChatRead(roomId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkChatReadMutationResult = NonNullable<Awaited<ReturnType<typeof markChatRead>>>
+
+    export type MarkChatReadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark all messages in a room as read
+ */
+export const useMarkChatRead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{roomId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markChatRead>>,
+        TError,
+        {roomId: number},
+        TContext
+      > => {
+      return useMutation(getMarkChatReadMutationOptions(options));
     }
 
 export const getListMessagesUrl = (roomId: number,) => {

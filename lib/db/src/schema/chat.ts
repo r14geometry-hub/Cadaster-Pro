@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { usersTable } from "./users";
@@ -10,6 +10,7 @@ export const chatRoomsTable = pgTable("chat_rooms", {
   orderId: integer("order_id").references(() => ordersTable.id),
   customerId: integer("customer_id").notNull().references(() => usersTable.id),
   engineerId: integer("engineer_id").notNull().references(() => engineersTable.id),
+  lastMessageAt: timestamp("last_message_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -18,6 +19,7 @@ export const messagesTable = pgTable("messages", {
   roomId: integer("room_id").notNull().references(() => chatRoomsTable.id),
   senderId: integer("sender_id").notNull().references(() => usersTable.id),
   text: text("text").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
