@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "P57KCjM_ceMqNHGTELHt2"
+uri = "file://kadastr-pro.tar.gz"
+type = "unspecified"
+title = "КадастрПро — исходный код (tar.gz)"
