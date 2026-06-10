@@ -6,3 +6,9 @@ id = "P57KCjM_ceMqNHGTELHt2"
 uri = "file://kadastr-pro.tar.gz"
 type = "unspecified"
 title = "КадастрПро — исходный код (tar.gz)"
+
+[[outputs]]
+id = "rvH2XcjUnOmovhkIlyqu7"
+uri = "file://kadastr-pro.zip"
+type = "unspecified"
+title = "КадастрПро — исходный код (ZIP)"
