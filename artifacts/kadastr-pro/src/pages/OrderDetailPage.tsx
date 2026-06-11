@@ -22,7 +22,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   MapPin, Calendar, Wallet, CheckCircle, XCircle, MessageSquare,
-  ShieldCheck, Clock, ChevronLeft, Star, AlertCircle,
+  ShieldCheck, Clock, ChevronLeft, Star, AlertCircle, Phone, Mail,
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; step: number }> = {
@@ -328,6 +328,33 @@ export default function OrderDetailPage() {
                                 </div>
                               )}
                             </div>
+
+                            {/* Contact info unlocked for accepted bid */}
+                            {isAccepted && isOwner && (
+                              <div className="mt-3 pt-3 border-t border-green-200 space-y-1.5">
+                                <p className="text-xs font-semibold text-green-700 uppercase tracking-wide">Контакты инженера</p>
+                                {bid.engineer.user.phone && (
+                                  <a
+                                    href={`tel:${bid.engineer.user.phone}`}
+                                    className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+                                    data-testid={`text-engineer-phone-${bid.id}`}
+                                  >
+                                    <Phone className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                                    {bid.engineer.user.phone}
+                                  </a>
+                                )}
+                                {bid.engineer.user.email && (
+                                  <a
+                                    href={`mailto:${bid.engineer.user.email}`}
+                                    className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+                                    data-testid={`text-engineer-email-${bid.id}`}
+                                  >
+                                    <Mail className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                                    {bid.engineer.user.email}
+                                  </a>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -471,6 +498,30 @@ export default function OrderDetailPage() {
                 )}
                 {acceptedBid.proposedDeadline && (
                   <p className="text-xs text-muted-foreground">Срок: {acceptedBid.proposedDeadline}</p>
+                )}
+                {isOwner && (acceptedBid.engineer.user.phone || acceptedBid.engineer.user.email) && (
+                  <div className="space-y-1.5 pt-2 border-t border-green-200">
+                    {acceptedBid.engineer.user.phone && (
+                      <a
+                        href={`tel:${acceptedBid.engineer.user.phone}`}
+                        className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+                        data-testid="text-sidebar-engineer-phone"
+                      >
+                        <Phone className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                        {acceptedBid.engineer.user.phone}
+                      </a>
+                    )}
+                    {acceptedBid.engineer.user.email && (
+                      <a
+                        href={`mailto:${acceptedBid.engineer.user.email}`}
+                        className="flex items-center gap-2 text-sm text-foreground hover:text-primary transition-colors"
+                        data-testid="text-sidebar-engineer-email"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-green-600 flex-shrink-0" />
+                        {acceptedBid.engineer.user.email}
+                      </a>
+                    )}
+                  </div>
                 )}
                 <Button
                   className="w-full gap-1.5"
