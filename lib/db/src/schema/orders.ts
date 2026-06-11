@@ -13,6 +13,9 @@ export const ordersTable = pgTable("orders", {
   budget: real("budget"),
   deadline: varchar("deadline", { length: 100 }),
   status: varchar("status", { length: 50 }).notNull().default("new"),
+  district: varchar("district", { length: 255 }),
+  locality: varchar("locality", { length: 255 }),
+  address: varchar("address", { length: 500 }),
   bidCount: integer("bid_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

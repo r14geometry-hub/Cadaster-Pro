@@ -352,6 +352,11 @@ paths:
           in: query
           schema:
             type: integer
+        - name: forEngineer
+          in: query
+          description: Engineer ID — filters orders by engineer's service territory
+          schema:
+            type: integer
       responses:
         "200":
           description: OK
@@ -1474,6 +1479,10 @@ components:
           type: array
           items:
             type: string
+        serviceAreas:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceArea"
         district:
           type: ["string", "null"]
         sro:
@@ -1556,6 +1565,10 @@ components:
           type: array
           items:
             type: string
+        serviceAreas:
+          type: array
+          items:
+            $ref: "#/components/schemas/ServiceArea"
         district:
           type: string
         sro:
@@ -1620,6 +1633,12 @@ components:
           type: string
         region:
           type: string
+        district:
+          type: ["string", "null"]
+        locality:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
         budget:
           type: ["number", "null"]
         deadline:
@@ -1657,6 +1676,12 @@ components:
         serviceType:
           type: string
         region:
+          type: string
+        district:
+          type: string
+        locality:
+          type: string
+        address:
           type: string
         budget:
           type: number
@@ -1991,6 +2016,21 @@ components:
           type: string
         isBlocked:
           type: boolean
+
+    ServiceArea:
+      type: object
+      properties:
+        region:
+          type: string
+        districts:
+          type: array
+          items:
+            type: string
+        localities:
+          type: array
+          items:
+            type: string
+      required: [region, districts, localities]
 
     RegionItem:
       type: object

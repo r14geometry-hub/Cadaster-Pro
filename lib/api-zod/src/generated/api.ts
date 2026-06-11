@@ -114,6 +114,11 @@ export const ListEngineersResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -175,6 +180,11 @@ export const ListTopEngineersResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -291,6 +301,11 @@ export const GetMyEngineerProfileResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -333,6 +348,11 @@ export const UpdateMyEngineerProfileBody = zod.object({
   "specializations": zod.array(zod.string()).optional(),
   "region": zod.string().optional(),
   "regions": zod.array(zod.string()).optional(),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().optional(),
   "sro": zod.string().optional(),
   "experience": zod.number().optional(),
@@ -372,6 +392,11 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -449,6 +474,11 @@ export const GetEngineerResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -493,7 +523,8 @@ export const ListOrdersQueryParams = zod.object({
   "region": zod.coerce.string().optional(),
   "customerId": zod.coerce.number().optional(),
   "page": zod.coerce.number().optional(),
-  "limit": zod.coerce.number().optional()
+  "limit": zod.coerce.number().optional(),
+  "forEngineer": zod.coerce.number().optional().describe('Engineer ID — filters orders by engineer\'s service territory')
 })
 
 export const ListOrdersResponse = zod.object({
@@ -516,6 +547,9 @@ export const ListOrdersResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -536,6 +570,9 @@ export const CreateOrderBody = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().optional(),
+  "locality": zod.string().optional(),
+  "address": zod.string().optional(),
   "budget": zod.number().optional(),
   "deadline": zod.string().optional(),
   "asDraft": zod.boolean().optional()
@@ -564,6 +601,9 @@ export const ListRecentOrdersResponseItem = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -606,6 +646,9 @@ export const CompleteOrderResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -663,6 +706,9 @@ export const GetOrderResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -705,6 +751,9 @@ export const UpdateOrderResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -754,6 +803,9 @@ export const ListOrderBidsResponseItem = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -780,6 +832,11 @@ export const ListOrderBidsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -870,6 +927,9 @@ export const UpdateBidResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -896,6 +956,11 @@ export const UpdateBidResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -966,6 +1031,9 @@ export const ListEngineerBidsResponseItem = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -992,6 +1060,11 @@ export const ListEngineerBidsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -1102,6 +1175,9 @@ export const ListChatsResponseItem = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -1141,6 +1217,11 @@ export const ListChatsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -1212,6 +1293,9 @@ export const CreateChatRoomResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),
@@ -1251,6 +1335,11 @@ export const CreateChatRoomResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "serviceAreas": zod.array(zod.object({
+  "region": zod.string(),
+  "districts": zod.array(zod.string()),
+  "localities": zod.array(zod.string())
+})).optional(),
   "district": zod.string().nullish(),
   "sro": zod.string().nullish(),
   "experience": zod.number(),
@@ -1567,6 +1656,9 @@ export const ListAdminOrdersResponse = zod.object({
   "description": zod.string(),
   "serviceType": zod.string(),
   "region": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "address": zod.string().nullish(),
   "budget": zod.number().nullish(),
   "deadline": zod.string().nullish(),
   "status": zod.string(),

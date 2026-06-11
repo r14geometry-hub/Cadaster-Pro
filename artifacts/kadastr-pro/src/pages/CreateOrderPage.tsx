@@ -9,20 +9,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCreateOrder, getListOrdersQueryKey } from "@workspace/api-client-react";
+import { useCreateOrder, getListOrdersQueryKey, useListRegions } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { ClipboardList, FileText, Send } from "lucide-react";
+import { ClipboardList, FileText, Send, Info } from "lucide-react";
 
 const SERVICE_TYPES = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка", "Другое"];
-const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
 
 const schema = z.object({
   title: z.string().min(5, "Минимум 5 символов"),
   description: z.string().min(20, "Минимум 20 символов"),
   serviceType: z.string().min(1, "Выберите тип услуги"),
   region: z.string().min(1, "Выберите регион"),
+  district: z.string().optional(),
+  locality: z.string().optional(),
+  address: z.string().optional(),
   budget: z.string().optional(),
   deadline: z.string().optional(),
 });
@@ -36,9 +38,12 @@ export default function CreateOrderPage() {
   const queryClient = useQueryClient();
   const [submitType, setSubmitType] = useState<"publish" | "draft">("publish");
 
+  const { data: regions } = useListRegions();
+  const activeRegions = (regions ?? []).filter(r => r.status === "active");
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { title: "", description: "", serviceType: "", region: "", budget: "", deadline: "" },
+    defaultValues: { title: "", description: "", serviceType: "", region: "", district: "", locality: "", address: "", budget: "", deadline: "" },
   });
 
   const createOrder = useCreateOrder({
@@ -52,7 +57,10 @@ export default function CreateOrderPage() {
         }
         setLocation("/dashboard/customer");
       },
-      onError: () => toast({ title: "Ошибка", description: "Не удалось разместить заявку", variant: "destructive" }),
+      onError: (err: unknown) => {
+        const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+        toast({ title: "Ошибка", description: msg ?? "Не удалось разместить заявку", variant: "destructive" });
+      },
     },
   });
 
@@ -73,6 +81,9 @@ export default function CreateOrderPage() {
         description: values.description,
         serviceType: values.serviceType,
         region: values.region,
+        district: values.district || undefined,
+        locality: values.locality || undefined,
+        address: values.address || undefined,
         budget: values.budget ? parseFloat(values.budget) : undefined,
         deadline: values.deadline || undefined,
         asDraft: submitType === "draft",
@@ -148,15 +159,18 @@ export default function CreateOrderPage() {
                   name="region"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Регион</FormLabel>
+                      <FormLabel>Субъект РФ</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger data-testid="select-region">
                             <SelectValue placeholder="Выберите регион" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
-                          {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        <SelectContent className="max-h-72">
+                          {activeRegions.length > 0
+                            ? activeRegions.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)
+                            : ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Другой"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)
+                          }
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -164,6 +178,56 @@ export default function CreateOrderPage() {
                   )}
                 />
               </div>
+
+              {/* Location details section */}
+              <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
+                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                  <Info className="w-4 h-4 flex-shrink-0" />
+                  <span>Точное местоположение поможет инженерам, работающим в вашем районе, быстрее найти заявку</span>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="district"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Район / улус (необязательно)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Например: Хангаласский улус" {...field} data-testid="input-district" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="locality"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Населённый пункт (необязательно)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Например: Покровск" {...field} data-testid="input-locality" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Адрес объекта (необязательно)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Улица, дом, кадастровый номер..." {...field} data-testid="input-address" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}

@@ -4,3 +4,6 @@
 - [Express 5 req.params types](express5-params.md) — req.params[key] is string|string[] in Express 5; cast as string at parseInt call sites.
 - [Lead billing architecture](lead-billing.md) — leads/debt/PRO/boost tables; DEBT_LIMIT=3000₽; lead created on bid accept.
 - [Rosreestr verification service](rosreestr-verification.md) — MockRosreestrProvider with 6 hardcoded attestat numbers; 3-gate enforcement; verification_logs table; rating computation from rejection rate.
+- [DB migrations](db-migrations.md) — drizzle-kit push fails non-interactively (unique constraint TTY prompt); use executeSql() code_execution tool for all schema changes.
+- [Territory matching](territory-match.md) — engineer serviceAreas JSON; forEngineer query param on GET /orders; locality > district > region priority; notifications filtered by territory.
+- [Region enforcement](region-enforcement.md) — 85 RF subjects in regionsTable; active/limited/paused/closed blocks new orders+bids; seedRegionsIfEmpty() runs on startup.

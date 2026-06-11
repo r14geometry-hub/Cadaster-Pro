@@ -27,6 +27,7 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     },
     specializations: parseJson(eng.specializations) as string[],
     regions: parseJson(eng.regions) as string[],
+    serviceAreas: parseJson(eng.serviceAreas),
     portfolioItems: parseJson(eng.portfolioItems),
     bio: eng.bio ?? null,
     responseTime: eng.responseTime ?? "в течение дня",
@@ -249,7 +250,7 @@ router.get("/engineers/me", requireAuth, async (req, res) => {
 
 router.put("/engineers/me", requireAuth, async (req, res) => {
   try {
-    const { specializations, region, regions, district, sro, experience, bio, phone, responseTime, priceFrom, isOnline, portfolioItems } = req.body;
+    const { specializations, region, regions, district, sro, experience, bio, phone, responseTime, priceFrom, isOnline, portfolioItems, serviceAreas } = req.body;
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(404).json({ error: "Engineer profile not found" }); return; }
     const updates: Record<string, unknown> = {};
@@ -264,6 +265,7 @@ router.put("/engineers/me", requireAuth, async (req, res) => {
     if (priceFrom !== undefined) updates.priceFrom = priceFrom;
     if (isOnline !== undefined) updates.isOnline = isOnline;
     if (portfolioItems !== undefined) updates.portfolioItems = JSON.stringify(portfolioItems);
+    if (serviceAreas !== undefined) updates.serviceAreas = JSON.stringify(serviceAreas);
     const [updated] = await db.update(engineersTable).set(updates).where(eq(engineersTable.id, eng.id)).returning();
     const userUpdates: Record<string, unknown> = {};
     if (phone !== undefined) userUpdates.phone = phone;

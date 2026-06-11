@@ -25,6 +25,7 @@ import {
   useGetSettings, getGetSettingsQueryKey,
   useGetMyNotifications, getGetMyNotificationsQueryKey,
   useMarkNotificationsRead,
+  useListRegions,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, Sparkles, AlertTriangle, Wallet, Bell, Phone, Mail,
+  MapPin, Plus, Trash2, Globe,
 } from "lucide-react";
 
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
@@ -77,13 +79,21 @@ export default function EngineerDashboardPage() {
   const [registryNumber, setRegistryNumber] = useState("");
   const [selectedSpecs, setSelectedSpecs] = useState<string[]>([]);
 
+  interface ServiceArea { region: string; districts: string[]; localities: string[]; }
+  const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
+  const [newAreaRegion, setNewAreaRegion] = useState("");
+  const [newAreaDistrict, setNewAreaDistrict] = useState("");
+  const [newAreaLocality, setNewAreaLocality] = useState("");
+
   const { data: profile, isLoading: profileLoading } = useGetMyEngineerProfile({
     query: { enabled: !!user, queryKey: getGetMyEngineerProfileQueryKey() },
   });
 
+  const { data: rfRegions } = useListRegions();
+
   const { data: openOrders, isLoading: ordersLoading } = useListOrders(
-    { limit: 100 },
-    { query: { enabled: !!user, queryKey: getListOrdersQueryKey({ limit: 100 }) } }
+    { limit: 100, ...(profile?.id ? { forEngineer: profile.id } : {}) },
+    { query: { enabled: !!user, queryKey: getListOrdersQueryKey({ limit: 100, ...(profile?.id ? { forEngineer: profile.id } : {}) }) } }
   );
 
   const { data: myBids, isLoading: bidsLoading } = useListEngineerBids(
@@ -145,6 +155,27 @@ export default function EngineerDashboardPage() {
       sro: (profile as unknown as { sro?: string | null })?.sro ?? "",
     },
   });
+
+  // Initialise serviceAreas from profile (once profile loads)
+  const profileServiceAreas = (profile as unknown as { serviceAreas?: ServiceArea[] })?.serviceAreas ?? [];
+  const effectiveAreas = serviceAreas.length > 0 || profileServiceAreas.length === 0 ? serviceAreas : profileServiceAreas;
+
+  function addServiceArea() {
+    if (!newAreaRegion) return;
+    const existing = effectiveAreas.find(a => a.region === newAreaRegion && !newAreaDistrict && !newAreaLocality);
+    if (existing) return;
+    const entry: ServiceArea = {
+      region: newAreaRegion,
+      districts: newAreaDistrict ? [newAreaDistrict] : [],
+      localities: newAreaLocality ? [newAreaLocality] : [],
+    };
+    setServiceAreas([...effectiveAreas, entry]);
+    setNewAreaRegion(""); setNewAreaDistrict(""); setNewAreaLocality("");
+  }
+
+  function removeServiceArea(idx: number) {
+    setServiceAreas(effectiveAreas.filter((_, i) => i !== idx));
+  }
 
   const createBid = useCreateBid({
     mutation: {
@@ -618,6 +649,89 @@ export default function EngineerDashboardPage() {
                       })}
                     </div>
                   </div>
+                  {/* Territory / Service Areas editor */}
+                  <div className="mb-6 border rounded-lg p-4 bg-muted/30">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MapPin className="w-4 h-4 text-primary" />
+                      <p className="text-sm font-semibold">Территория деятельности</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Заявки из выбранных территорий будут отображаться в разделе «Заявки». Если список пуст — показываются все заявки.
+                    </p>
+                    {effectiveAreas.length > 0 && (
+                      <div className="space-y-2 mb-3">
+                        {effectiveAreas.map((area, i) => (
+                          <div key={i} className="flex items-center justify-between bg-background border rounded-md px-3 py-2 text-sm">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <Globe className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="font-medium truncate">{area.region}</span>
+                              {area.districts.length > 0 && (
+                                <span className="text-muted-foreground truncate">› {area.districts.join(", ")}</span>
+                              )}
+                              {area.localities.length > 0 && (
+                                <span className="text-muted-foreground truncate">› {area.localities.join(", ")}</span>
+                              )}
+                              {area.districts.length === 0 && area.localities.length === 0 && (
+                                <span className="text-xs text-green-600">(весь регион)</span>
+                              )}
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive flex-shrink-0"
+                              onClick={() => removeServiceArea(i)}
+                              data-testid={`button-remove-area-${i}`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <Select value={newAreaRegion} onValueChange={setNewAreaRegion}>
+                        <SelectTrigger className="h-8 text-sm" data-testid="select-new-area-region">
+                          <SelectValue placeholder="Субъект РФ *" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-72">
+                          {(rfRegions ?? []).filter(r => r.status === "active").map(r => (
+                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {newAreaRegion && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            value={newAreaDistrict}
+                            onChange={(e) => setNewAreaDistrict(e.target.value)}
+                            placeholder="Район / улус (необяз.)"
+                            className="h-8 text-sm"
+                            data-testid="input-new-area-district"
+                          />
+                          <Input
+                            value={newAreaLocality}
+                            onChange={(e) => setNewAreaLocality(e.target.value)}
+                            placeholder="Нас. пункт (необяз.)"
+                            className="h-8 text-sm"
+                            data-testid="input-new-area-locality"
+                          />
+                        </div>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 h-8"
+                        onClick={addServiceArea}
+                        disabled={!newAreaRegion}
+                        data-testid="button-add-service-area"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Добавить территорию
+                      </Button>
+                    </div>
+                  </div>
+
                   <form
                     onSubmit={profileForm.handleSubmit((v) => updateProfile.mutate({
                       data: {
@@ -630,16 +744,17 @@ export default function EngineerDashboardPage() {
                         whatsapp: v.whatsapp || undefined,
                         district: v.district || undefined,
                         sro: v.sro || undefined,
+                        serviceAreas: effectiveAreas,
                       } as Parameters<typeof updateProfile.mutate>[0]["data"],
                     }))}
                     className="space-y-4"
                   >
                     <div>
-                      <label className="text-sm font-medium mb-1 block">Регион</label>
+                      <label className="text-sm font-medium mb-1 block">Основной регион (для профиля)</label>
                       <Select onValueChange={(v) => profileForm.setValue("region", v)} defaultValue={profile.region}>
                         <SelectTrigger data-testid="select-profile-region"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                        <SelectContent className="max-h-72">
+                          {(rfRegions ?? []).map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                         </SelectContent>
                       </Select>
                     </div>

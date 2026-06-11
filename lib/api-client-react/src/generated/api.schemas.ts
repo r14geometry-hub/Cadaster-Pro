@@ -75,6 +75,12 @@ export interface ProfileBoost {
   createdAt: string;
 }
 
+export interface ServiceArea {
+  region: string;
+  districts: string[];
+  localities: string[];
+}
+
 export interface Engineer {
   id: number;
   userId: number;
@@ -83,6 +89,7 @@ export interface Engineer {
   specializations: string[];
   region: string;
   regions: string[];
+  serviceAreas?: ServiceArea[];
   /** @nullable */
   district?: string | null;
   /** @nullable */
@@ -135,6 +142,7 @@ export interface EngineerUpdate {
   specializations?: string[];
   region?: string;
   regions?: string[];
+  serviceAreas?: ServiceArea[];
   district?: string;
   sro?: string;
   experience?: number;
@@ -172,6 +180,12 @@ export interface Order {
   serviceType: string;
   region: string;
   /** @nullable */
+  district?: string | null;
+  /** @nullable */
+  locality?: string | null;
+  /** @nullable */
+  address?: string | null;
+  /** @nullable */
   budget?: number | null;
   /** @nullable */
   deadline?: string | null;
@@ -192,6 +206,9 @@ export interface OrderInput {
   description: string;
   serviceType: string;
   region: string;
+  district?: string;
+  locality?: string;
+  address?: string;
   budget?: number;
   deadline?: string;
   asDraft?: boolean;
@@ -683,6 +700,10 @@ region?: string;
 customerId?: number;
 page?: number;
 limit?: number;
+/**
+ * Engineer ID — filters orders by engineer's service territory
+ */
+forEngineer?: number;
 };
 
 export type UploadChatFileBody = {

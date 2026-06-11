@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { db, usersTable, ordersTable, engineersTable, reviewsTable, regionsTable } from "@workspace/db";
+import { db, usersTable, ordersTable, engineersTable, reviewsTable, regionsTable, notificationsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { calculateWeightedRating } from "./reviews";
+import { orderMatchesTerritories, type ServiceArea } from "../lib/territory-match";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ async function formatOrder(order: typeof ordersTable.$inferSelect) {
 
 router.get("/orders", async (req, res) => {
   try {
-    const { status, serviceType, region, customerId, page = "1", limit = "12" } = req.query as Record<string, string>;
+    const { status, serviceType, region, customerId, page = "1", limit = "12", forEngineer } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
@@ -33,12 +34,29 @@ router.get("/orders", async (req, res) => {
     let query = db.select().from(ordersTable).$dynamic();
     if (conditions.length > 0) query = query.where(and(...conditions));
 
-    const [{ count }] = await db.select({ count: sql<number>`count(*)` }).from(ordersTable)
-      .where(conditions.length > 0 ? and(...conditions) : undefined);
+    const allRows = await query.orderBy(sql`${ordersTable.createdAt} desc`);
 
-    const all = await query.orderBy(sql`${ordersTable.createdAt} desc`).limit(limitNum).offset(offset);
-    const items = await Promise.all(all.map(formatOrder));
-    res.json({ items, total: Number(count), page: pageNum, limit: limitNum });
+    // Territory-based filtering for engineer context
+    let filtered = allRows;
+    if (forEngineer) {
+      const engineerId = parseInt(forEngineer);
+      const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, engineerId)).limit(1);
+      if (eng) {
+        let areas: ServiceArea[] = [];
+        try { areas = JSON.parse(eng.serviceAreas) as ServiceArea[]; } catch { areas = []; }
+        if (areas.length > 0) {
+          filtered = allRows.filter(o => orderMatchesTerritories(
+            { region: o.region, district: o.district, locality: o.locality },
+            areas
+          ));
+        }
+      }
+    }
+
+    const total = filtered.length;
+    const paginated = filtered.slice(offset, offset + limitNum);
+    const items = await Promise.all(paginated.map(formatOrder));
+    res.json({ items, total, page: pageNum, limit: limitNum });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });
@@ -61,7 +79,7 @@ router.get("/orders/recent", async (req, res) => {
 
 router.post("/orders", requireAuth, async (req, res) => {
   try {
-    const { title, description, serviceType, region, budget, deadline, asDraft } = req.body;
+    const { title, description, serviceType, region, district, locality, address, budget, deadline, asDraft } = req.body;
     if (!title || !description || !serviceType || !region) {
       res.status(400).json({ error: "Missing required fields" }); return;
     }
@@ -82,10 +100,45 @@ router.post("/orders", requireAuth, async (req, res) => {
     const [order] = await db.insert(ordersTable).values({
       customerId: req.user!.userId,
       title, description, serviceType, region,
+      district: district ?? null,
+      locality: locality ?? null,
+      address: address ?? null,
       budget: budget ?? null,
       deadline: deadline ?? null,
       status: asDraft ? "draft" : "new",
     }).returning();
+
+    // Notify matching engineers about the new order
+    if (!asDraft) {
+      try {
+        const allEngineers = await db.select().from(engineersTable)
+          .where(and(eq(engineersTable.isVerified, true)));
+
+        const matchingUserIds: number[] = [];
+        for (const eng of allEngineers) {
+          let areas: ServiceArea[] = [];
+          try { areas = JSON.parse(eng.serviceAreas) as ServiceArea[]; } catch { areas = []; }
+          if (orderMatchesTerritories({ region: order.region, district: order.district, locality: order.locality }, areas)) {
+            matchingUserIds.push(eng.userId);
+          }
+        }
+
+        if (matchingUserIds.length > 0) {
+          await db.insert(notificationsTable).values(
+            matchingUserIds.map(uid => ({
+              userId: uid,
+              type: "new_order" as const,
+              title: "Новая заявка в вашем регионе",
+              message: `${order.title} · ${order.region}${order.locality ? `, ${order.locality}` : ""}`,
+              link: `/orders/${order.id}`,
+            }))
+          );
+        }
+      } catch (notifErr) {
+        req.log.warn({ err: notifErr }, "Failed to send new-order notifications");
+      }
+    }
+
     res.status(201).json(await formatOrder(order));
   } catch (err) {
     req.log.error(err);
