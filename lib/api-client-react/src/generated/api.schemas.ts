@@ -286,6 +286,17 @@ export interface AdminUserUpdate {
   isBlocked?: boolean;
 }
 
+/**
+ * Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)
+ */
+export interface PlatformSettings {[key: string]: string}
+
+export type PlatformSettingsInputSettings = {[key: string]: string};
+
+export interface PlatformSettingsInput {
+  settings: PlatformSettingsInputSettings;
+}
+
 export interface EngineerBalance {
   debtAmount: number;
   totalAccrued: number;

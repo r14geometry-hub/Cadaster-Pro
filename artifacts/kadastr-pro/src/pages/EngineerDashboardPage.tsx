@@ -22,6 +22,7 @@ import {
   useCreateChatRoom,
   useGetMyLeads, getGetMyLeadsQueryKey,
   useGetMyBalance, getGetMyBalanceQueryKey,
+  useGetSettings, getGetSettingsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,7 +37,7 @@ import {
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
 const SPECIALIZATIONS = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка"];
 
-const DEBT_LIMIT = 3000;
+const DEFAULT_DEBT_LIMIT = 3000;
 
 const bidSchema = z.object({
   message: z.string().min(10, "Минимум 10 символов"),
@@ -95,12 +96,17 @@ export default function EngineerDashboardPage() {
     query: { enabled: !!user, queryKey: getGetMyBalanceQueryKey() },
   });
 
+  const { data: platformSettings } = useGetSettings({
+    query: { queryKey: getGetSettingsQueryKey() },
+  });
+  const debtLimit = parseInt(platformSettings?.debt_limit ?? "") || DEFAULT_DEBT_LIMIT;
+
   const leads = leadsData?.items ?? [];
   const totalAccrued = balanceData?.totalAccrued ?? 0;
   const totalPaid = balanceData?.totalPaid ?? 0;
   const currentDebt = balanceData?.debtAmount ?? profile?.debtAmount ?? 0;
-  const debtBlocked = currentDebt >= DEBT_LIMIT;
-  const debtWarning = currentDebt >= DEBT_LIMIT * 0.8;
+  const debtBlocked = currentDebt >= debtLimit;
+  const debtWarning = currentDebt >= debtLimit * 0.8;
 
   const bidForm = useForm({
     resolver: zodResolver(bidSchema),
@@ -203,7 +209,7 @@ export default function EngineerDashboardPage() {
           <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
           <div>
             <p className="font-semibold text-amber-700">Задолженность приближается к лимиту</p>
-            <p className="text-sm text-amber-600 mt-0.5">Текущий долг: <strong>{currentDebt.toLocaleString("ru-RU")} ₽</strong> из {DEBT_LIMIT.toLocaleString("ru-RU")} ₽</p>
+            <p className="text-sm text-amber-600 mt-0.5">Текущий долг: <strong>{currentDebt.toLocaleString("ru-RU")} ₽</strong> из {debtLimit.toLocaleString("ru-RU")} ₽</p>
           </div>
         </div>
       )}
@@ -425,7 +431,7 @@ export default function EngineerDashboardPage() {
                     <p className={`text-xl font-bold ${debtBlocked ? "text-red-700" : debtWarning ? "text-amber-700" : ""}`}>
                       {currentDebt.toLocaleString("ru-RU")} ₽
                     </p>
-                    <p className="text-xs text-muted-foreground">Текущий долг / {DEBT_LIMIT.toLocaleString("ru-RU")} ₽ лимит</p>
+                    <p className="text-xs text-muted-foreground">Текущий долг / {debtLimit.toLocaleString("ru-RU")} ₽ лимит</p>
                   </div>
                 </div>
               </CardContent>

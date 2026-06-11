@@ -20,6 +20,8 @@ import {
   useGetAdminLeadsSummary, getGetAdminLeadsSummaryQueryKey,
   useListAdminEngineers, getListAdminEngineersQueryKey,
   useUpdateAdminEngineer,
+  useGetAdminSettings, getGetAdminSettingsQueryKey,
+  useUpdateAdminSettings,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,6 +36,7 @@ export default function AdminPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
+  const [editingSettings, setEditingSettings] = useState<Record<string, string>>({});
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({
     query: { enabled: user?.role === "admin", queryKey: getGetAdminStatsQueryKey() },
@@ -66,6 +69,10 @@ export default function AdminPage() {
     {},
     { query: { enabled: user?.role === "admin", queryKey: getListAdminEngineersQueryKey({}) } }
   );
+
+  const { data: platformSettings, isLoading: settingsLoading } = useGetAdminSettings({
+    query: { enabled: user?.role === "admin", queryKey: getGetAdminSettingsQueryKey() },
+  });
 
   const updateUser = useUpdateAdminUser({
     mutation: {
@@ -102,6 +109,16 @@ export default function AdminPage() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: getListAdminEngineersQueryKey({}) });
         toast({ title: "Инженер обновлён" });
+      },
+    },
+  });
+
+  const updateSettings = useUpdateAdminSettings({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetAdminSettingsQueryKey() });
+        setEditingSettings({});
+        toast({ title: "Настройки сохранены" });
       },
     },
   });
@@ -175,6 +192,7 @@ export default function AdminPage() {
           <TabsTrigger value="orders" data-testid="tab-admin-orders">Заявки</TabsTrigger>
           <TabsTrigger value="leads" data-testid="tab-admin-leads">Учёт лидов</TabsTrigger>
           <TabsTrigger value="engineers-pro" data-testid="tab-admin-engineers-pro">PRO и Буст</TabsTrigger>
+          <TabsTrigger value="settings" data-testid="tab-admin-settings">Настройки</TabsTrigger>
         </TabsList>
 
         {/* Users */}
@@ -542,6 +560,85 @@ export default function AdminPage() {
                       ))}
                     </TableBody>
                   </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Platform Settings */}
+        <TabsContent value="settings">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Настройки платформы</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {settingsLoading ? (
+                <Skeleton className="h-48 rounded" />
+              ) : (
+                <div className="space-y-6 max-w-md">
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Лимиты</h3>
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="text-sm font-medium">Порог задолженности (₽)</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="w-32 text-right"
+                        defaultValue={platformSettings?.debt_limit ?? "3000"}
+                        onChange={(e) => setEditingSettings((s) => ({ ...s, debt_limit: e.target.value }))}
+                        data-testid="input-debt-limit"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Цены буста (₽)</h3>
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="text-sm font-medium">7 дней</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="w-32 text-right"
+                        defaultValue={platformSettings?.boost_price_7d ?? "500"}
+                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_7d: e.target.value }))}
+                        data-testid="input-boost-price-7d"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="text-sm font-medium">30 дней</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="w-32 text-right"
+                        defaultValue={platformSettings?.boost_price_30d ?? "1500"}
+                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_30d: e.target.value }))}
+                        data-testid="input-boost-price-30d"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <label className="text-sm font-medium">90 дней</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        className="w-32 text-right"
+                        defaultValue={platformSettings?.boost_price_90d ?? "3500"}
+                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_90d: e.target.value }))}
+                        data-testid="input-boost-price-90d"
+                      />
+                    </div>
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      if (Object.keys(editingSettings).length === 0) return;
+                      updateSettings.mutate({ data: { settings: editingSettings } });
+                    }}
+                    disabled={updateSettings.isPending || Object.keys(editingSettings).length === 0}
+                    data-testid="button-save-settings"
+                  >
+                    {updateSettings.isPending ? "Сохранение..." : "Сохранить"}
+                  </Button>
                 </div>
               )}
             </CardContent>

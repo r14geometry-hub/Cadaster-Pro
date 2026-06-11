@@ -1,4 +1,4 @@
-import { db, leadPricesTable } from "@workspace/db";
+import { db, leadPricesTable, platformSettingsTable } from "@workspace/db";
 import { sql } from "drizzle-orm";
 import { logger } from "./logger";
 
@@ -16,21 +16,47 @@ const DEFAULT_LEAD_PRICES: Array<{ serviceType: string; price: number }> = [
   { serviceType: "Перераспределение", price: 500 },
 ];
 
+const DEFAULT_PLATFORM_SETTINGS: Array<{ key: string; value: string }> = [
+  { key: "debt_limit", value: "3000" },
+  { key: "boost_price_7d", value: "500" },
+  { key: "boost_price_30d", value: "1500" },
+  { key: "boost_price_90d", value: "3500" },
+];
+
 export async function seedLeadPricesIfEmpty(): Promise<void> {
   try {
-    const [{ count }] = await db
+    const [{ count: leadPriceCount }] = await db
       .select({ count: sql<number>`count(*)` })
       .from(leadPricesTable);
 
-    if (Number(count) > 0) return; // already seeded
+    if (Number(leadPriceCount) === 0) {
+      await db.insert(leadPricesTable).values(DEFAULT_LEAD_PRICES).onConflictDoNothing();
+      logger.info({ count: DEFAULT_LEAD_PRICES.length }, "Lead prices seeded");
+    }
 
-    await db
-      .insert(leadPricesTable)
-      .values(DEFAULT_LEAD_PRICES)
-      .onConflictDoNothing();
+    const [{ count: settingsCount }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(platformSettingsTable);
 
-    logger.info({ count: DEFAULT_LEAD_PRICES.length }, "Lead prices seeded");
+    if (Number(settingsCount) === 0) {
+      await db.insert(platformSettingsTable).values(DEFAULT_PLATFORM_SETTINGS).onConflictDoNothing();
+      logger.info({ count: DEFAULT_PLATFORM_SETTINGS.length }, "Platform settings seeded");
+    }
   } catch (err) {
-    logger.error({ err }, "Failed to seed lead prices");
+    logger.error({ err }, "Failed to seed defaults");
+  }
+}
+
+/** Fetch a single platform setting by key, with fallback */
+export async function getSetting(key: string, fallback: string): Promise<string> {
+  try {
+    const [row] = await db
+      .select()
+      .from(platformSettingsTable)
+      .where(sql`${platformSettingsTable.key} = ${key}`)
+      .limit(1);
+    return row?.value ?? fallback;
+  } catch {
+    return fallback;
   }
 }

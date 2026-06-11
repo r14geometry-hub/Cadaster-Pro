@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable, leadsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
@@ -29,6 +29,18 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     debtAmount: eng.debtAmount ?? 0,
   };
 }
+
+router.get("/settings", async (req, res) => {
+  try {
+    const rows = await db.select().from(platformSettingsTable).orderBy(platformSettingsTable.key);
+    const settings: Record<string, string> = {};
+    for (const row of rows) settings[row.key] = row.value;
+    res.json(settings);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.get("/engineers", async (req, res) => {
   try {

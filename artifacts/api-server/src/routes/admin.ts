@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable } from "@workspace/db";
 import { eq, and, sql, gte } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
@@ -90,6 +90,41 @@ router.get("/admin/orders", requireAuth, requireRole("admin"), async (req, res) 
   }
 });
 
+// ── Platform Settings ─────────────────────────────────────────────────────────
+
+router.get("/admin/settings", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const rows = await db.select().from(platformSettingsTable).orderBy(platformSettingsTable.key);
+    const settings: Record<string, string> = {};
+    for (const row of rows) settings[row.key] = row.value;
+    res.json(settings);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.put("/admin/settings", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { settings } = req.body as { settings: Record<string, string> };
+    if (!settings || typeof settings !== "object") {
+      res.status(400).json({ error: "settings object required" }); return;
+    }
+    for (const [key, value] of Object.entries(settings)) {
+      await db.insert(platformSettingsTable)
+        .values({ key, value })
+        .onConflictDoUpdate({ target: platformSettingsTable.key, set: { value, updatedAt: new Date() } });
+    }
+    const rows = await db.select().from(platformSettingsTable).orderBy(platformSettingsTable.key);
+    const result: Record<string, string> = {};
+    for (const row of rows) result[row.key] = row.value;
+    res.json(result);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ── Lead Prices ──────────────────────────────────────────────────────────────
 
 router.get("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, res) => {
@@ -171,10 +206,16 @@ router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (r
       .where(eq(leadsTable.id, leadId))
       .returning();
 
-    // If marking as paid, reduce engineer's debtAmount
+    // Keep debtAmount in sync with payment status transitions
     if (paymentStatus === "paid" && lead.paymentStatus === "unpaid") {
+      // Marking paid: reduce debt
       await db.update(engineersTable)
         .set({ debtAmount: sql`greatest(0, ${engineersTable.debtAmount} - ${lead.leadCost})` })
+        .where(eq(engineersTable.id, lead.engineerId));
+    } else if (paymentStatus === "unpaid" && lead.paymentStatus === "paid") {
+      // Reversing to unpaid: restore debt
+      await db.update(engineersTable)
+        .set({ debtAmount: sql`${engineersTable.debtAmount} + ${lead.leadCost}` })
         .where(eq(engineersTable.id, lead.engineerId));
     }
 

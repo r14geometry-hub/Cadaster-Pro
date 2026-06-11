@@ -1261,6 +1261,28 @@ export const ListAdminOrdersResponse = zod.object({
 
 
 /**
+ * @summary Get public platform settings (debt_limit, boost prices)
+ */
+export const GetSettingsResponse = zod.record(zod.string(), zod.string()).describe('Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)')
+
+
+/**
+ * @summary Get platform settings (debt limit, boost prices, etc.)
+ */
+export const GetAdminSettingsResponse = zod.record(zod.string(), zod.string()).describe('Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)')
+
+
+/**
+ * @summary Update platform settings
+ */
+export const UpdateAdminSettingsBody = zod.object({
+  "settings": zod.record(zod.string(), zod.string())
+})
+
+export const UpdateAdminSettingsResponse = zod.record(zod.string(), zod.string()).describe('Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)')
+
+
+/**
  * @summary Get configured lead prices per service type
  */
 export const GetAdminLeadPricesResponseItem = zod.object({

@@ -727,6 +727,49 @@ paths:
               schema:
                 $ref: "#/components/schemas/OrderList"
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [engineers]
+      summary: Get public platform settings (debt_limit, boost prices)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+
+  /admin/settings:
+    get:
+      operationId: getAdminSettings
+      tags: [admin]
+      summary: Get platform settings (debt limit, boost prices, etc.)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+    put:
+      operationId: updateAdminSettings
+      tags: [admin]
+      summary: Update platform settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlatformSettingsInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlatformSettings"
+
   /admin/lead-prices:
     get:
       operationId: getAdminLeadPrices
@@ -1382,6 +1425,21 @@ components:
           type: string
         isBlocked:
           type: boolean
+
+    PlatformSettings:
+      type: object
+      additionalProperties:
+        type: string
+      description: Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)
+
+    PlatformSettingsInput:
+      type: object
+      properties:
+        settings:
+          type: object
+          additionalProperties:
+            type: string
+      required: [settings]
 
     EngineerBalance:
       type: object

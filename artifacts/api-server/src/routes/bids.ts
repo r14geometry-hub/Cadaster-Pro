@@ -2,10 +2,11 @@ import { Router } from "express";
 import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable, leadsTable, leadPricesTable } from "@workspace/db";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
+import { getSetting } from "../lib/seed-lead-prices";
 
 const router = Router();
 
-const DEBT_LIMIT = 3000;
+const DEFAULT_DEBT_LIMIT = 3000;
 
 function parseJson(s: string): unknown[] {
   try { return JSON.parse(s); } catch { return []; }
@@ -67,8 +68,12 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
       .where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(403).json({ error: "Only engineers can bid" }); return; }
 
+    // Fetch configurable debt limit
+    const debtLimitStr = await getSetting("debt_limit", String(DEFAULT_DEBT_LIMIT));
+    const debtLimit = parseInt(debtLimitStr) || DEFAULT_DEBT_LIMIT;
+
     // Debt enforcement
-    if ((eng.debtAmount ?? 0) >= DEBT_LIMIT) {
+    if ((eng.debtAmount ?? 0) >= debtLimit) {
       res.status(403).json({ error: "Погасите задолженность перед платформой для продолжения" });
       return;
     }

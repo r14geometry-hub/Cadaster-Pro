@@ -7,3 +7,4 @@ export * from "./chat";
 export * from "./leads";
 export * from "./lead_prices";
 export * from "./profile_boosts";
+export * from "./platform_settings";
