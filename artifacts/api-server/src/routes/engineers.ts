@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable } from "@workspace/db";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable, notificationsTable } from "@workspace/db";
+import { eq, and, gte, sql, desc } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 
@@ -164,6 +164,34 @@ router.get("/engineers/me/leads", requireAuth, async (req, res) => {
       .from(leadsTable).where(eq(leadsTable.engineerId, eng.id));
 
     res.json({ items: leads, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/engineers/me/notifications", requireAuth, async (req, res) => {
+  try {
+    const notifications = await db
+      .select()
+      .from(notificationsTable)
+      .where(eq(notificationsTable.userId, req.user!.userId))
+      .orderBy(desc(notificationsTable.createdAt))
+      .limit(50);
+    res.json(notifications);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/engineers/me/notifications", requireAuth, async (req, res) => {
+  try {
+    const result = await db
+      .update(notificationsTable)
+      .set({ isRead: true })
+      .where(and(eq(notificationsTable.userId, req.user!.userId), eq(notificationsTable.isRead, false)));
+    res.json({ updated: result.rowCount ?? 0 });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

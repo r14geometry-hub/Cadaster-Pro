@@ -368,6 +368,8 @@ export interface AdminStats {
   pendingReviews: number;
   totalRevenue: number;
   newUsersThisMonth: number;
+  /** Verified engineers not re-checked in the past 30 days */
+  needsReverification: number;
 }
 
 export interface AdminUserUpdate {
@@ -384,6 +386,16 @@ export type PlatformSettingsInputSettings = {[key: string]: string};
 
 export interface PlatformSettingsInput {
   settings: PlatformSettingsInputSettings;
+}
+
+export interface EngineerNotification {
+  id: number;
+  userId: number;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface EngineerBalance {
@@ -583,6 +595,10 @@ limit?: number;
 
 export type GetMyLeadsParams = {
 page?: number;
+};
+
+export type MarkNotificationsRead200 = {
+  updated: number;
 };
 
 export type ListOrdersParams = {

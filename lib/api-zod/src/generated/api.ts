@@ -236,6 +236,29 @@ export const GetMyLeadsResponse = zod.object({
 
 
 /**
+ * @summary Get notifications for the authenticated engineer
+ */
+export const GetMyNotificationsResponseItem = zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "title": zod.string(),
+  "message": zod.string(),
+  "type": zod.string(),
+  "isRead": zod.boolean(),
+  "createdAt": zod.string()
+})
+export const GetMyNotificationsResponse = zod.array(GetMyNotificationsResponseItem)
+
+
+/**
+ * @summary Mark all notifications as read
+ */
+export const MarkNotificationsReadResponse = zod.object({
+  "updated": zod.number()
+})
+
+
+/**
  * @summary Get billing balance for the authenticated engineer
  */
 export const GetMyBalanceResponse = zod.object({
@@ -1452,7 +1475,8 @@ export const GetAdminStatsResponse = zod.object({
   "verifiedEngineers": zod.number(),
   "pendingReviews": zod.number(),
   "totalRevenue": zod.number(),
-  "newUsersThisMonth": zod.number()
+  "newUsersThisMonth": zod.number(),
+  "needsReverification": zod.number().describe('Verified engineers not re-checked in the past 30 days')
 })
 
 

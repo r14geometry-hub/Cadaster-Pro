@@ -10,3 +10,4 @@ export * from "./profile_boosts";
 export * from "./platform_settings";
 export * from "./verification_logs";
 export * from "./complaints";
+export * from "./notifications";

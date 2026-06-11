@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable } from "@workspace/db";
-import { eq, and, sql, gte, desc } from "drizzle-orm";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable, notificationsTable } from "@workspace/db";
+import { eq, and, sql, gte, desc, or, isNull, lt } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 import { calculateWeightedRating } from "./reviews";
@@ -25,8 +25,18 @@ router.get("/admin/stats", requireAuth, requireRole(ADMIN_ROLES), async (req, re
     const [{ total: pendingReviews }] = await db.select({ total: sql<number>`count(*)` }).from(reviewsTable).where(eq(reviewsTable.moderationStatus, "pending"));
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const [{ total: newUsersThisMonth }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable).where(sql`${usersTable.createdAt} >= ${monthStart.toISOString()}`);
     const [{ total: totalDebt }] = await db.select({ total: sql<number>`coalesce(sum(lead_cost), 0)` }).from(leadsTable).where(eq(leadsTable.paymentStatus, "unpaid"));
+    const [{ total: needsReverification }] = await db
+      .select({ total: sql<number>`count(*)` })
+      .from(engineersTable)
+      .where(
+        and(
+          eq(engineersTable.isVerified, true),
+          or(isNull(engineersTable.rosreestrCheckedAt), lt(engineersTable.rosreestrCheckedAt, thirtyDaysAgo))
+        )
+      );
     res.json({
       totalUsers: Number(totalUsers),
       totalEngineers: Number(totalEngineers),
@@ -38,6 +48,7 @@ router.get("/admin/stats", requireAuth, requireRole(ADMIN_ROLES), async (req, re
       pendingReviews: Number(pendingReviews),
       totalRevenue: Number(totalDebt),
       newUsersThisMonth: Number(newUsersThisMonth),
+      needsReverification: Number(needsReverification),
     });
   } catch (err) {
     req.log.error(err);
@@ -409,8 +420,9 @@ router.delete("/admin/engineers/:engineerId", requireAuth, requireRole(ADMIN_ROL
       await tx.delete(profileBoostsTable).where(eq(profileBoostsTable.engineerId, engineerId));
       await tx.delete(verificationLogsTable).where(eq(verificationLogsTable.engineerId, engineerId));
       await tx.delete(bidsTable).where(eq(bidsTable.engineerId, engineerId));
-      // 5. engineer profile, then user account
+      // 5. engineer profile, then notifications for the user account, then user account
       await tx.delete(engineersTable).where(eq(engineersTable.id, engineerId));
+      await tx.delete(notificationsTable).where(eq(notificationsTable.userId, eng.userId));
       await tx.delete(usersTable).where(eq(usersTable.id, eng.userId));
     });
     res.json({ message: "Engineer and user account deleted" });

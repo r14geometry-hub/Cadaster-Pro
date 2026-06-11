@@ -211,6 +211,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/LeadList"
 
+  /engineers/me/notifications:
+    get:
+      operationId: getMyNotifications
+      tags: [engineers]
+      summary: Get notifications for the authenticated engineer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EngineerNotification"
+    patch:
+      operationId: markNotificationsRead
+      tags: [engineers]
+      summary: Mark all notifications as read
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated:
+                    type: integer
+                required: [updated]
+
   /engineers/me/balance:
     get:
       operationId: getMyBalance
@@ -1882,7 +1912,10 @@ components:
           type: number
         newUsersThisMonth:
           type: integer
-      required: [totalUsers, totalEngineers, totalCustomers, totalOrders, openOrders, completedOrders, verifiedEngineers, pendingReviews, totalRevenue, newUsersThisMonth]
+        needsReverification:
+          type: integer
+          description: Verified engineers not re-checked in the past 30 days
+      required: [totalUsers, totalEngineers, totalCustomers, totalOrders, openOrders, completedOrders, verifiedEngineers, pendingReviews, totalRevenue, newUsersThisMonth, needsReverification]
 
     AdminUserUpdate:
       type: object
@@ -1906,6 +1939,25 @@ components:
           additionalProperties:
             type: string
       required: [settings]
+
+    EngineerNotification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+      required: [id, userId, title, message, type, isRead, createdAt]
 
     EngineerBalance:
       type: object

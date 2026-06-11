@@ -23,6 +23,8 @@ import {
   useGetMyLeads, getGetMyLeadsQueryKey,
   useGetMyBalance, getGetMyBalanceQueryKey,
   useGetSettings, getGetSettingsQueryKey,
+  useGetMyNotifications, getGetMyNotificationsQueryKey,
+  useMarkNotificationsRead,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -31,7 +33,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, Sparkles, AlertTriangle, Wallet,
+  ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, Sparkles, AlertTriangle, Wallet, Bell,
 } from "lucide-react";
 
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
@@ -103,6 +105,19 @@ export default function EngineerDashboardPage() {
     query: { queryKey: getGetSettingsQueryKey() },
   });
   const debtLimit = parseInt(platformSettings?.debt_limit ?? "") || DEFAULT_DEBT_LIMIT;
+
+  const { data: notifications } = useGetMyNotifications({
+    query: { enabled: !!user, queryKey: getGetMyNotificationsQueryKey() },
+  });
+  const unreadNotifications = notifications?.filter(n => !n.isRead).length ?? 0;
+
+  const markAllRead = useMarkNotificationsRead({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getGetMyNotificationsQueryKey() });
+      },
+    },
+  });
 
   const leads = leadsData?.items ?? [];
   const totalAccrued = balanceData?.totalAccrued ?? 0;
@@ -261,6 +276,14 @@ export default function EngineerDashboardPage() {
             {totalUnread > 0 && (
               <span className="ml-1.5 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
                 {totalUnread}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="notifications" data-testid="tab-notifications" onClick={() => { if (unreadNotifications > 0) markAllRead.mutate(); }}>
+            Уведомления
+            {unreadNotifications > 0 && (
+              <span className="ml-1.5 bg-orange-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
+                {unreadNotifications}
               </span>
             )}
           </TabsTrigger>
@@ -659,6 +682,51 @@ export default function EngineerDashboardPage() {
               <p>Чатов пока нет</p>
             </div>
           )}
+        </TabsContent>
+
+        {/* Notifications */}
+        <TabsContent value="notifications">
+          <div className="max-w-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Уведомления</h2>
+              {unreadNotifications > 0 && (
+                <Button variant="outline" size="sm" onClick={() => markAllRead.mutate()}>
+                  Отметить все прочитанными
+                </Button>
+              )}
+            </div>
+            {!notifications || notifications.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Bell className="w-12 h-12 mx-auto mb-4 opacity-30" />
+                <p>Уведомлений нет</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {notifications.map((n) => (
+                  <Card key={n.id} className={n.isRead ? "opacity-70" : "ring-1 ring-orange-200"}>
+                    <CardContent className="p-4 flex gap-3">
+                      <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${
+                        n.type === "error" ? "bg-red-500" :
+                        n.type === "warning" ? "bg-amber-500" :
+                        "bg-blue-500"
+                      }`} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`font-medium text-sm ${n.type === "error" ? "text-red-700" : n.type === "warning" ? "text-amber-700" : "text-foreground"}`}>
+                            {n.title}
+                          </p>
+                          <span className="text-xs text-muted-foreground flex-shrink-0">
+                            {new Date(n.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-1">{n.message}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
         </TabsContent>
       </Tabs>
     </div>

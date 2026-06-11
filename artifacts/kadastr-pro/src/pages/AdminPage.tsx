@@ -37,7 +37,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck,
-  RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown,
+  RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown, Clock,
 } from "lucide-react";
 
 const DEBT_LIMIT = 3000;
@@ -263,25 +263,26 @@ export default function AdminPage() {
       {/* Stats Cards */}
       {statsLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          {Array.from({ length: 7 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
       ) : stats && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
           {[
-            { label: "Пользователей", value: stats.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-            { label: "Инженеров", value: stats.totalEngineers, icon: Shield, color: "text-green-600", bg: "bg-green-50" },
-            { label: "Верифицировано", value: stats.verifiedEngineers, icon: ShieldCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Всего заявок", value: stats.totalOrders, icon: ClipboardList, color: "text-purple-600", bg: "bg-purple-50" },
-            { label: "Отзывов на модерации", value: stats.pendingReviews, icon: Star, color: "text-amber-600", bg: "bg-amber-50" },
-            { label: "Долг (неоплачено)", value: `${stats.totalRevenue.toLocaleString("ru-RU")} ₽`, icon: Wallet, color: "text-orange-600", bg: "bg-orange-50" },
-          ].map(({ label, value, icon: Icon, color, bg }) => (
-            <Card key={label} data-testid={`stat-card-${label}`}>
+            { label: "Пользователей", value: stats.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-50", alert: false },
+            { label: "Инженеров", value: stats.totalEngineers, icon: Shield, color: "text-green-600", bg: "bg-green-50", alert: false },
+            { label: "Верифицировано", value: stats.verifiedEngineers, icon: ShieldCheck, color: "text-emerald-600", bg: "bg-emerald-50", alert: false },
+            { label: "Нужна ре-верификация", value: stats.needsReverification, icon: Clock, color: stats.needsReverification > 0 ? "text-red-600" : "text-slate-500", bg: stats.needsReverification > 0 ? "bg-red-50" : "bg-slate-50", alert: stats.needsReverification > 0 },
+            { label: "Всего заявок", value: stats.totalOrders, icon: ClipboardList, color: "text-purple-600", bg: "bg-purple-50", alert: false },
+            { label: "Отзывов на модерации", value: stats.pendingReviews, icon: Star, color: "text-amber-600", bg: "bg-amber-50", alert: false },
+            { label: "Долг (неоплачено)", value: `${stats.totalRevenue.toLocaleString("ru-RU")} ₽`, icon: Wallet, color: "text-orange-600", bg: "bg-orange-50", alert: false },
+          ].map(({ label, value, icon: Icon, color, bg, alert }) => (
+            <Card key={label} data-testid={`stat-card-${label}`} className={alert ? "ring-1 ring-red-300" : ""}>
               <CardContent className="p-4 flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
                   <Icon className={`w-5 h-5 ${color}`} />
                 </div>
                 <div>
-                  <p className="text-xl font-bold text-foreground">{value}</p>
+                  <p className={`text-xl font-bold ${alert ? "text-red-600" : "text-foreground"}`}>{value}</p>
                   <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               </CardContent>
