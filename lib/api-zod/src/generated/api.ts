@@ -1327,6 +1327,7 @@ export const ListMessagesResponseItem = zod.object({
   "attachmentUrl": zod.string().nullish(),
   "attachmentName": zod.string().nullish(),
   "attachmentType": zod.string().nullish(),
+  "attachmentSize": zod.number().nullish(),
   "createdAt": zod.string()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
@@ -1343,7 +1344,8 @@ export const SendMessageBody = zod.object({
   "text": zod.string().optional(),
   "attachmentUrl": zod.string().optional(),
   "attachmentName": zod.string().optional(),
-  "attachmentType": zod.string().optional()
+  "attachmentType": zod.string().optional(),
+  "attachmentSize": zod.number().optional()
 })
 
 

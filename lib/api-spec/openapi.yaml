@@ -1773,6 +1773,8 @@ components:
           type: ["string", "null"]
         attachmentType:
           type: ["string", "null"]
+        attachmentSize:
+          type: ["integer", "null"]
         createdAt:
           type: string
       required: [id, roomId, senderId, sender, text, isRead, createdAt]
@@ -1788,6 +1790,8 @@ components:
           type: string
         attachmentType:
           type: string
+        attachmentSize:
+          type: integer
 
     FileUploadResult:
       type: object

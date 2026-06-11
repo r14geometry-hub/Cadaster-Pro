@@ -23,6 +23,7 @@ export const messagesTable = pgTable("messages", {
   attachmentUrl: text("attachment_url"),
   attachmentName: varchar("attachment_name", { length: 500 }),
   attachmentType: varchar("attachment_type", { length: 100 }),
+  attachmentSize: integer("attachment_size"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

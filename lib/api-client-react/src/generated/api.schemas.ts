@@ -290,6 +290,8 @@ export interface Message {
   attachmentName?: string | null;
   /** @nullable */
   attachmentType?: string | null;
+  /** @nullable */
+  attachmentSize?: number | null;
   createdAt: string;
 }
 
@@ -298,6 +300,7 @@ export interface MessageInput {
   attachmentUrl?: string;
   attachmentName?: string;
   attachmentType?: string;
+  attachmentSize?: number;
 }
 
 export interface FileUploadResult {

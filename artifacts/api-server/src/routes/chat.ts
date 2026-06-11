@@ -208,6 +208,7 @@ router.get("/chats/:roomId/messages", requireAuth, async (req, res) => {
         attachmentUrl: m.attachmentUrl ?? null,
         attachmentName: m.attachmentName ?? null,
         attachmentType: m.attachmentType ?? null,
+        attachmentSize: m.attachmentSize ?? null,
         sender: {
           ...safeSender,
           phone: contactsUnlocked ? sender.phone ?? null : null,
@@ -243,7 +244,7 @@ router.post("/chats/:roomId/messages", requireAuth, async (req, res) => {
     const roomForSend = await assertRoomMember(roomId, userId);
     if (!roomForSend) { res.status(403).json({ error: "Not a member of this chat room" }); return; }
 
-    const { text, attachmentUrl, attachmentName, attachmentType } = req.body;
+    const { text, attachmentUrl, attachmentName, attachmentType, attachmentSize } = req.body;
 
     if (!text && !attachmentUrl) {
       res.status(400).json({ error: "Text or attachment required" }); return;
@@ -273,6 +274,7 @@ router.post("/chats/:roomId/messages", requireAuth, async (req, res) => {
       attachmentUrl: attachmentUrl ?? null,
       attachmentName: attachmentName ?? null,
       attachmentType: attachmentType ?? null,
+      attachmentSize: attachmentSize != null ? Number(attachmentSize) : null,
     }).returning();
 
     await db.update(chatRoomsTable)
@@ -287,6 +289,7 @@ router.post("/chats/:roomId/messages", requireAuth, async (req, res) => {
       attachmentUrl: msg.attachmentUrl ?? null,
       attachmentName: msg.attachmentName ?? null,
       attachmentType: msg.attachmentType ?? null,
+      attachmentSize: msg.attachmentSize ?? null,
       sender: {
         ...safeSender,
         phone: contactsUnlockedForMsg ? sender.phone ?? null : null,
