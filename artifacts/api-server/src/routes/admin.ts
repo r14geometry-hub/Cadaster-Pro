@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable, notificationsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable, notificationsTable, regionsTable } from "@workspace/db";
 import { eq, and, sql, gte, desc, or, isNull, lt } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
@@ -734,6 +734,117 @@ router.post("/admin/engineers/:id/reverify", requireAuth, requireRole(ADMIN_ROLE
     });
 
     res.json({ isValid: true, message: `Повторная верификация пройдена. СРО: ${record.sroName}.` });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Geography / Regions ───────────────────────────────────────────────────────
+
+router.get("/admin/regions", requireAuth, requireRole("superadmin"), async (req, res) => {
+  try {
+    const regions = await db.select().from(regionsTable).orderBy(regionsTable.federalDistrict, regionsTable.name);
+
+    const enriched = await Promise.all(regions.map(async (r) => {
+      const [{ engineerCount }] = await db
+        .select({ engineerCount: sql<number>`count(*)` })
+        .from(engineersTable)
+        .where(sql`lower(${engineersTable.region}) = lower(${r.name})`);
+
+      const [{ orderCount }] = await db
+        .select({ orderCount: sql<number>`count(*)` })
+        .from(ordersTable)
+        .where(sql`lower(${ordersTable.region}) = lower(${r.name})`);
+
+      const [{ activeOrderCount }] = await db
+        .select({ activeOrderCount: sql<number>`count(*)` })
+        .from(ordersTable)
+        .where(and(
+          sql`lower(${ordersTable.region}) = lower(${r.name})`,
+          eq(ordersTable.status, "in_progress")
+        ));
+
+      const [{ completedOrderCount }] = await db
+        .select({ completedOrderCount: sql<number>`count(*)` })
+        .from(ordersTable)
+        .where(and(
+          sql`lower(${ordersTable.region}) = lower(${r.name})`,
+          eq(ordersTable.status, "completed")
+        ));
+
+      const [{ avgRating }] = await db
+        .select({ avgRating: sql<number>`coalesce(avg(${engineersTable.rating}), 0)` })
+        .from(engineersTable)
+        .where(sql`lower(${engineersTable.region}) = lower(${r.name})`);
+
+      const engIds = await db
+        .select({ id: engineersTable.id })
+        .from(engineersTable)
+        .where(sql`lower(${engineersTable.region}) = lower(${r.name})`);
+
+      let leadCount = 0;
+      let revenue = 0;
+      if (engIds.length > 0) {
+        const ids = engIds.map((e) => e.id);
+        const [{ lc }] = await db
+          .select({ lc: sql<number>`count(*)` })
+          .from(leadsTable)
+          .where(sql`${leadsTable.engineerId} = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})`);
+        leadCount = Number(lc);
+        const [{ rev }] = await db
+          .select({ rev: sql<number>`coalesce(sum(${leadsTable.leadCost}), 0)` })
+          .from(leadsTable)
+          .where(and(
+            sql`${leadsTable.engineerId} = ANY(${sql.raw(`ARRAY[${ids.join(",")}]::int[]`)})`,
+            eq(leadsTable.paymentStatus, "paid")
+          ));
+        revenue = Number(rev);
+      }
+
+      return {
+        ...r,
+        engineerCount: Number(engineerCount),
+        orderCount: Number(orderCount),
+        activeOrderCount: Number(activeOrderCount),
+        completedOrderCount: Number(completedOrderCount),
+        avgRating: Math.round(Number(avgRating) * 10) / 10,
+        leadCount,
+        revenue,
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/admin/regions/:regionId", requireAuth, requireRole("superadmin"), async (req, res) => {
+  try {
+    const regionId = parseInt(req.params.regionId as string);
+    const { status, comment, features, launchDate } = req.body;
+
+    const VALID_STATUSES = ["active", "limited", "paused", "closed"];
+    if (status !== undefined && !VALID_STATUSES.includes(status)) {
+      res.status(400).json({ error: `Недопустимый статус. Допустимые: ${VALID_STATUSES.join(", ")}` });
+      return;
+    }
+
+    const updates: Partial<typeof regionsTable.$inferInsert> = {};
+    if (status !== undefined) updates.status = status;
+    if (comment !== undefined) updates.comment = comment || null;
+    if (features !== undefined) updates.features = features || null;
+    if (launchDate !== undefined) updates.launchDate = launchDate ? new Date(launchDate) : null;
+
+    const [updated] = await db.update(regionsTable)
+      .set(updates)
+      .where(eq(regionsTable.id, regionId))
+      .returning();
+
+    if (!updated) { res.status(404).json({ error: "Регион не найден" }); return; }
+    res.json(updated);
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

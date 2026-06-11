@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable, notificationsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable, notificationsTable, regionsTable } from "@workspace/db";
 import { eq, and, gte, sql, desc } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
@@ -48,6 +48,22 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     rosreestrRejectionRate: eng.rosreestrRejectionRate ?? null,
   };
 }
+
+router.get("/regions", async (req, res) => {
+  try {
+    const rows = await db.select({
+      id: regionsTable.id,
+      code: regionsTable.code,
+      name: regionsTable.name,
+      federalDistrict: regionsTable.federalDistrict,
+      status: regionsTable.status,
+    }).from(regionsTable).orderBy(regionsTable.federalDistrict, regionsTable.name);
+    res.json(rows);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.get("/settings", async (req, res) => {
   try {

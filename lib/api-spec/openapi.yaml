@@ -937,6 +937,61 @@ paths:
               schema:
                 $ref: "#/components/schemas/OrderList"
 
+  /regions:
+    get:
+      operationId: listRegions
+      tags: [engineers]
+      summary: Get all RF regions with their current status (for dropdowns)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RegionItem"
+
+  /admin/regions:
+    get:
+      operationId: listAdminRegions
+      tags: [admin]
+      summary: Get all regions with stats (superadmin only)
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AdminRegionItem"
+
+  /admin/regions/{regionId}:
+    patch:
+      operationId: updateAdminRegion
+      tags: [admin]
+      summary: Update region status / comment / features (superadmin only)
+      parameters:
+        - in: path
+          name: regionId
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegionUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegionItem"
+
   /settings:
     get:
       operationId: getSettings
@@ -1936,6 +1991,86 @@ components:
           type: string
         isBlocked:
           type: boolean
+
+    RegionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        federalDistrict:
+          type: string
+        status:
+          type: string
+          enum: [active, limited, paused, closed]
+        comment:
+          type: string
+          nullable: true
+        features:
+          type: string
+          nullable: true
+        launchDate:
+          type: string
+          nullable: true
+      required: [id, code, name, federalDistrict, status]
+
+    AdminRegionItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        code:
+          type: string
+        name:
+          type: string
+        federalDistrict:
+          type: string
+        status:
+          type: string
+          enum: [active, limited, paused, closed]
+        comment:
+          type: string
+          nullable: true
+        features:
+          type: string
+          nullable: true
+        launchDate:
+          type: string
+          nullable: true
+        engineerCount:
+          type: integer
+        orderCount:
+          type: integer
+        activeOrderCount:
+          type: integer
+        completedOrderCount:
+          type: integer
+        leadCount:
+          type: integer
+        revenue:
+          type: integer
+        avgRating:
+          type: number
+      required: [id, code, name, federalDistrict, status, engineerCount, orderCount, activeOrderCount, completedOrderCount, leadCount, revenue, avgRating]
+
+    RegionUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, limited, paused, closed]
+        comment:
+          type: string
+          nullable: true
+        features:
+          type: string
+          nullable: true
+        launchDate:
+          type: string
+          nullable: true
 
     PlatformSettings:
       type: object

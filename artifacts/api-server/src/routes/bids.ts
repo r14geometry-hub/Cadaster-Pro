@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable, leadsTable, leadPricesTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable, leadsTable, leadPricesTable, regionsTable } from "@workspace/db";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { getSetting } from "../lib/seed-lead-prices";
@@ -71,6 +71,18 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
     if (!eng.isVerified) {
       res.status(403).json({ error: "Только верифицированные кадастровые инженеры могут откликаться на заявки. Пройдите проверку по реестру Росреестра в личном кабинете." });
       return;
+    }
+
+    // Region enforcement — block bids in non-active regions
+    const [orderForRegion] = await db.select().from(ordersTable)
+      .where(eq(ordersTable.id, orderId)).limit(1);
+    if (orderForRegion) {
+      const [regionRow] = await db.select().from(regionsTable)
+        .where(sql`lower(${regionsTable.name}) = lower(${orderForRegion.region})`).limit(1);
+      if (regionRow && regionRow.status !== "active") {
+        res.status(403).json({ error: "Подача откликов в данном регионе недоступна." });
+        return;
+      }
     }
 
     const debtLimitStr = await getSetting("debt_limit", String(DEFAULT_DEBT_LIMIT));

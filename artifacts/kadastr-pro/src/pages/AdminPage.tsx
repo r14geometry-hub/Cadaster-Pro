@@ -31,13 +31,15 @@ import {
   useReverifyEngineer,
   useListAdminComplaints, getListAdminComplaintsQueryKey,
   useResolveComplaint,
+  useListAdminRegions, getListAdminRegionsQueryKey,
+  useUpdateAdminRegion,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import {
   Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck,
-  RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown, Clock,
+  RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown, Clock, MapPin,
 } from "lucide-react";
 
 const DEBT_LIMIT = 3000;
@@ -315,6 +317,12 @@ export default function AdminPage() {
               </span>
             )}
           </TabsTrigger>
+          {isSuperAdmin && (
+            <TabsTrigger value="geography" data-testid="tab-admin-geography">
+              <MapPin className="w-3.5 h-3.5 mr-1" />
+              География
+            </TabsTrigger>
+          )}
         </TabsList>
 
         {/* ── Users ─────────────────────────────────────────────────────────── */}
@@ -1095,7 +1103,222 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* ── Geography ─────────────────────────────────────────────────────── */}
+        {isSuperAdmin && (
+          <TabsContent value="geography">
+            <GeographyTab />
+          </TabsContent>
+        )}
       </Tabs>
+    </div>
+  );
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  active: "Активен",
+  limited: "Ограничен",
+  paused: "Приостановлен",
+  closed: "Закрыт",
+};
+
+const STATUS_COLORS: Record<string, string> = {
+  active: "bg-green-100 text-green-800",
+  limited: "bg-amber-100 text-amber-800",
+  paused: "bg-orange-100 text-orange-800",
+  closed: "bg-red-100 text-red-800",
+};
+
+function GeographyTab() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { data: regions, isLoading } = useListAdminRegions();
+  const updateRegion = useUpdateAdminRegion();
+
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editStatus, setEditStatus] = useState("");
+  const [editComment, setEditComment] = useState("");
+  const [filterDistrict, setFilterDistrict] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const districts = regions
+    ? Array.from(new Set(regions.map((r) => r.federalDistrict))).sort()
+    : [];
+
+  const filtered = (regions ?? []).filter((r) => {
+    if (filterDistrict !== "all" && r.federalDistrict !== filterDistrict) return false;
+    if (filterStatus !== "all" && r.status !== filterStatus) return false;
+    if (searchTerm && !r.name.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    return true;
+  });
+
+  function startEdit(r: { id: number; status: string; comment?: string | null }) {
+    setEditingId(r.id);
+    setEditStatus(r.status);
+    setEditComment(r.comment ?? "");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+  }
+
+  async function saveEdit(id: number) {
+    try {
+      await updateRegion.mutateAsync({ regionId: id, data: { status: editStatus as "active" | "limited" | "paused" | "closed", comment: editComment || null } });
+      queryClient.invalidateQueries({ queryKey: getListAdminRegionsQueryKey() });
+      toast({ title: "Сохранено" });
+      setEditingId(null);
+    } catch {
+      toast({ title: "Ошибка сохранения", variant: "destructive" });
+    }
+  }
+
+  const summary = regions
+    ? { active: regions.filter(r => r.status === "active").length, limited: regions.filter(r => r.status === "limited").length, paused: regions.filter(r => r.status === "paused").length, closed: regions.filter(r => r.status === "closed").length }
+    : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary cards */}
+      {summary && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {(["active", "limited", "paused", "closed"] as const).map((s) => (
+            <Card key={s} className="p-4">
+              <p className="text-xs text-muted-foreground">{STATUS_LABELS[s]}</p>
+              <p className="text-2xl font-bold mt-1">{summary[s]}</p>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="pt-4 pb-3">
+          <div className="flex flex-wrap gap-2 items-center">
+            <Input
+              placeholder="Поиск по названию..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="h-8 text-sm w-48"
+              data-testid="geography-search"
+            />
+            <Select value={filterDistrict} onValueChange={setFilterDistrict}>
+              <SelectTrigger className="h-8 text-xs w-48" data-testid="geography-filter-district">
+                <SelectValue placeholder="Федеральный округ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все округа</SelectItem>
+                {districts.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="h-8 text-xs w-36" data-testid="geography-filter-status">
+                <SelectValue placeholder="Статус" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Все статусы</SelectItem>
+                {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <span className="text-xs text-muted-foreground ml-auto">Показано: {filtered.length}</span>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Regions table */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6 space-y-2">
+              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-9 w-full" />)}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-8 text-xs">№</TableHead>
+                    <TableHead className="text-xs">Субъект РФ</TableHead>
+                    <TableHead className="text-xs">Федеральный округ</TableHead>
+                    <TableHead className="text-xs">Статус</TableHead>
+                    <TableHead className="text-xs text-right">Инженеры</TableHead>
+                    <TableHead className="text-xs text-right">Заявки</TableHead>
+                    <TableHead className="text-xs text-right">В работе</TableHead>
+                    <TableHead className="text-xs text-right">Выручка ₽</TableHead>
+                    <TableHead className="text-xs">Комментарий</TableHead>
+                    <TableHead className="text-xs">Действие</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map((r) => (
+                    <TableRow key={r.id} data-testid={`region-row-${r.id}`}>
+                      <TableCell className="text-xs text-muted-foreground">{r.code}</TableCell>
+                      <TableCell className="text-xs font-medium">{r.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{r.federalDistrict}</TableCell>
+                      <TableCell>
+                        {editingId === r.id ? (
+                          <Select value={editStatus} onValueChange={setEditStatus}>
+                            <SelectTrigger className="h-7 text-xs w-36" data-testid={`select-region-status-${r.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Badge className={`text-xs ${STATUS_COLORS[r.status] ?? ""}`}>
+                            {STATUS_LABELS[r.status] ?? r.status}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-right">{r.engineerCount}</TableCell>
+                      <TableCell className="text-xs text-right">{r.orderCount}</TableCell>
+                      <TableCell className="text-xs text-right">{r.activeOrderCount}</TableCell>
+                      <TableCell className="text-xs text-right">{r.revenue.toLocaleString("ru-RU")}</TableCell>
+                      <TableCell className="text-xs max-w-[140px]">
+                        {editingId === r.id ? (
+                          <Input
+                            value={editComment}
+                            onChange={(e) => setEditComment(e.target.value)}
+                            placeholder="Комментарий..."
+                            className="h-7 text-xs"
+                            data-testid={`input-region-comment-${r.id}`}
+                          />
+                        ) : (
+                          <span className="text-muted-foreground truncate block">{r.comment ?? "—"}</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingId === r.id ? (
+                          <div className="flex gap-1">
+                            <Button size="sm" className="h-7 text-xs" onClick={() => saveEdit(r.id)} data-testid={`button-region-save-${r.id}`}>
+                              Сохранить
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit}>
+                              Отмена
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            onClick={() => startEdit(r)}
+                            data-testid={`button-region-edit-${r.id}`}
+                          >
+                            Изменить
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

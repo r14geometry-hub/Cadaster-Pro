@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, ordersTable, engineersTable, reviewsTable } from "@workspace/db";
+import { db, usersTable, ordersTable, engineersTable, reviewsTable, regionsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 import { calculateWeightedRating } from "./reviews";
@@ -65,6 +65,20 @@ router.post("/orders", requireAuth, async (req, res) => {
     if (!title || !description || !serviceType || !region) {
       res.status(400).json({ error: "Missing required fields" }); return;
     }
+
+    // Region enforcement — block new orders in non-active regions
+    const [regionRow] = await db.select().from(regionsTable)
+      .where(sql`lower(${regionsTable.name}) = lower(${region})`).limit(1);
+    if (regionRow && regionRow.status !== "active") {
+      const messages: Record<string, string> = {
+        limited: "Регион работает в ограниченном режиме. Размещение новых заявок недоступно.",
+        paused: "Регион временно приостановлен. Размещение новых заявок недоступно.",
+        closed: "Регион закрыт. Размещение новых заявок недоступно.",
+      };
+      res.status(403).json({ error: messages[regionRow.status] ?? "Регион недоступен." });
+      return;
+    }
+
     const [order] = await db.insert(ordersTable).values({
       customerId: req.user!.userId,
       title, description, serviceType, region,

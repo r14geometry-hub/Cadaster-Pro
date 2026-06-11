@@ -386,6 +386,72 @@ export interface AdminUserUpdate {
   isBlocked?: boolean;
 }
 
+export type RegionItemStatus = typeof RegionItemStatus[keyof typeof RegionItemStatus];
+
+
+export const RegionItemStatus = {
+  active: 'active',
+  limited: 'limited',
+  paused: 'paused',
+  closed: 'closed',
+} as const;
+
+export interface RegionItem {
+  id: number;
+  code: string;
+  name: string;
+  federalDistrict: string;
+  status: RegionItemStatus;
+  comment?: string | null;
+  features?: string | null;
+  launchDate?: string | null;
+}
+
+export type AdminRegionItemStatus = typeof AdminRegionItemStatus[keyof typeof AdminRegionItemStatus];
+
+
+export const AdminRegionItemStatus = {
+  active: 'active',
+  limited: 'limited',
+  paused: 'paused',
+  closed: 'closed',
+} as const;
+
+export interface AdminRegionItem {
+  id: number;
+  code: string;
+  name: string;
+  federalDistrict: string;
+  status: AdminRegionItemStatus;
+  comment?: string | null;
+  features?: string | null;
+  launchDate?: string | null;
+  engineerCount: number;
+  orderCount: number;
+  activeOrderCount: number;
+  completedOrderCount: number;
+  leadCount: number;
+  revenue: number;
+  avgRating: number;
+}
+
+export type RegionUpdateStatus = typeof RegionUpdateStatus[keyof typeof RegionUpdateStatus];
+
+
+export const RegionUpdateStatus = {
+  active: 'active',
+  limited: 'limited',
+  paused: 'paused',
+  closed: 'closed',
+} as const;
+
+export interface RegionUpdate {
+  status?: RegionUpdateStatus;
+  comment?: string | null;
+  features?: string | null;
+  launchDate?: string | null;
+}
+
 /**
  * Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)
  */

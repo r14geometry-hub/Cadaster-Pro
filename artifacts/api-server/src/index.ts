@@ -1,6 +1,7 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 import { seedLeadPricesIfEmpty } from "./lib/seed-lead-prices";
+import { seedRegionsIfEmpty } from "./lib/seed-regions";
 import { startReverificationScheduler } from "./services/reverification-scheduler";
 
 const rawPort = process.env["PORT"];
@@ -25,5 +26,6 @@ app.listen(port, (err) => {
 
   logger.info({ port }, "Server listening");
   seedLeadPricesIfEmpty().catch((e) => logger.error({ err: e }, "Seed failed"));
+  seedRegionsIfEmpty().catch((e) => logger.error({ err: e }, "Region seed failed"));
   startReverificationScheduler();
 });

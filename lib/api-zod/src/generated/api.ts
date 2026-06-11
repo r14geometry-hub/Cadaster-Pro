@@ -1580,6 +1580,71 @@ export const ListAdminOrdersResponse = zod.object({
 
 
 /**
+ * @summary Get all RF regions with their current status (for dropdowns)
+ */
+export const ListRegionsResponseItem = zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "federalDistrict": zod.string(),
+  "status": zod.enum(['active', 'limited', 'paused', 'closed']),
+  "comment": zod.string().nullish(),
+  "features": zod.string().nullish(),
+  "launchDate": zod.string().nullish()
+})
+export const ListRegionsResponse = zod.array(ListRegionsResponseItem)
+
+
+/**
+ * @summary Get all regions with stats (superadmin only)
+ */
+export const ListAdminRegionsResponseItem = zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "federalDistrict": zod.string(),
+  "status": zod.enum(['active', 'limited', 'paused', 'closed']),
+  "comment": zod.string().nullish(),
+  "features": zod.string().nullish(),
+  "launchDate": zod.string().nullish(),
+  "engineerCount": zod.number(),
+  "orderCount": zod.number(),
+  "activeOrderCount": zod.number(),
+  "completedOrderCount": zod.number(),
+  "leadCount": zod.number(),
+  "revenue": zod.number(),
+  "avgRating": zod.number()
+})
+export const ListAdminRegionsResponse = zod.array(ListAdminRegionsResponseItem)
+
+
+/**
+ * @summary Update region status / comment / features (superadmin only)
+ */
+export const UpdateAdminRegionParams = zod.object({
+  "regionId": zod.coerce.number()
+})
+
+export const UpdateAdminRegionBody = zod.object({
+  "status": zod.enum(['active', 'limited', 'paused', 'closed']).optional(),
+  "comment": zod.string().nullish(),
+  "features": zod.string().nullish(),
+  "launchDate": zod.string().nullish()
+})
+
+export const UpdateAdminRegionResponse = zod.object({
+  "id": zod.number(),
+  "code": zod.string(),
+  "name": zod.string(),
+  "federalDistrict": zod.string(),
+  "status": zod.enum(['active', 'limited', 'paused', 'closed']),
+  "comment": zod.string().nullish(),
+  "features": zod.string().nullish(),
+  "launchDate": zod.string().nullish()
+})
+
+
+/**
  * @summary Get public platform settings (debt_limit, boost prices)
  */
 export const GetSettingsResponse = zod.record(zod.string(), zod.string()).describe('Key-value map of platform settings (debt_limit, boost_price_7d, boost_price_30d, boost_price_90d)')

@@ -23,6 +23,7 @@ import type {
   AdminEngineerList,
   AdminEngineerResult,
   AdminEngineerUpdate,
+  AdminRegionItem,
   AdminReviewItem,
   AdminReviewList,
   AdminReviewUpdate,
@@ -75,6 +76,8 @@ import type {
   OrderUpdate,
   PlatformSettings,
   PlatformSettingsInput,
+  RegionItem,
+  RegionUpdate,
   Register400,
   Register403,
   Register409,
@@ -3416,6 +3419,232 @@ export function useListAdminOrders<TData = Awaited<ReturnType<typeof listAdminOr
 
 
 
+
+export const getListRegionsUrl = () => {
+
+
+
+
+  return `/api/regions`
+}
+
+/**
+ * @summary Get all RF regions with their current status (for dropdowns)
+ */
+export const listRegions = async ( options?: RequestInit): Promise<RegionItem[]> => {
+
+  return customFetch<RegionItem[]>(getListRegionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRegionsQueryKey = () => {
+    return [
+    `/api/regions`
+    ] as const;
+    }
+
+
+export const getListRegionsQueryOptions = <TData = Awaited<ReturnType<typeof listRegions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRegions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRegionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRegions>>> = ({ signal }) => listRegions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRegions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRegionsQueryResult = NonNullable<Awaited<ReturnType<typeof listRegions>>>
+export type ListRegionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all RF regions with their current status (for dropdowns)
+ */
+
+export function useListRegions<TData = Awaited<ReturnType<typeof listRegions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRegions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRegionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListAdminRegionsUrl = () => {
+
+
+
+
+  return `/api/admin/regions`
+}
+
+/**
+ * @summary Get all regions with stats (superadmin only)
+ */
+export const listAdminRegions = async ( options?: RequestInit): Promise<AdminRegionItem[]> => {
+
+  return customFetch<AdminRegionItem[]>(getListAdminRegionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminRegionsQueryKey = () => {
+    return [
+    `/api/admin/regions`
+    ] as const;
+    }
+
+
+export const getListAdminRegionsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminRegions>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRegions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminRegionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminRegions>>> = ({ signal }) => listAdminRegions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminRegions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminRegionsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminRegions>>>
+export type ListAdminRegionsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get all regions with stats (superadmin only)
+ */
+
+export function useListAdminRegions<TData = Awaited<ReturnType<typeof listAdminRegions>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminRegions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminRegionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateAdminRegionUrl = (regionId: number,) => {
+
+
+
+
+  return `/api/admin/regions/${regionId}`
+}
+
+/**
+ * @summary Update region status / comment / features (superadmin only)
+ */
+export const updateAdminRegion = async (regionId: number,
+    regionUpdate: RegionUpdate, options?: RequestInit): Promise<RegionItem> => {
+
+  return customFetch<RegionItem>(getUpdateAdminRegionUrl(regionId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      regionUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminRegionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminRegion>>, TError,{regionId: number;data: BodyType<RegionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminRegion>>, TError,{regionId: number;data: BodyType<RegionUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminRegion'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminRegion>>, {regionId: number;data: BodyType<RegionUpdate>}> = (props) => {
+          const {regionId,data} = props ?? {};
+
+          return  updateAdminRegion(regionId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminRegionMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminRegion>>>
+    export type UpdateAdminRegionMutationBody = BodyType<RegionUpdate>
+    export type UpdateAdminRegionMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update region status / comment / features (superadmin only)
+ */
+export const useUpdateAdminRegion = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminRegion>>, TError,{regionId: number;data: BodyType<RegionUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminRegion>>,
+        TError,
+        {regionId: number;data: BodyType<RegionUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminRegionMutationOptions(options));
+    }
 
 export const getGetSettingsUrl = () => {
 
