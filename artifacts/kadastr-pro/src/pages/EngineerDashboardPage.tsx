@@ -23,6 +23,7 @@ import {
   useGetMyLeads, getGetMyLeadsQueryKey,
   useGetMyBalance, getGetMyBalanceQueryKey,
   useGetSettings, getGetSettingsQueryKey,
+  useGetActivePaymentRequisite,
   useGetMyNotifications, getGetMyNotificationsQueryKey,
   useMarkNotificationsRead,
   useListRegions,
@@ -118,6 +119,8 @@ export default function EngineerDashboardPage() {
     query: { queryKey: getGetSettingsQueryKey() },
   });
   const debtLimit = parseInt(platformSettings?.debt_limit ?? "") || DEFAULT_DEBT_LIMIT;
+
+  const { data: activeRequisite } = useGetActivePaymentRequisite();
 
   const { data: notifications } = useGetMyNotifications({
     query: { enabled: !!user, queryKey: getGetMyNotificationsQueryKey() },
@@ -535,6 +538,59 @@ export default function EngineerDashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Payment requisites */}
+          {activeRequisite && currentDebt > 0 && (
+            <Card className="border-blue-200 bg-blue-50 mb-6">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm text-blue-800 flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4" />
+                  Как погасить задолженность
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="grid sm:grid-cols-2 gap-x-8 gap-y-1.5 text-sm">
+                  <div className="flex gap-2">
+                    <span className="text-muted-foreground w-28 shrink-0">Получатель</span>
+                    <span className="font-medium">{activeRequisite.fullName}</span>
+                  </div>
+                  {activeRequisite.bank && (
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-28 shrink-0">Банк</span>
+                      <span>{activeRequisite.bank}</span>
+                    </div>
+                  )}
+                  {activeRequisite.phone && (
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-28 shrink-0">СБП / Телефон</span>
+                      <span className="font-mono">{activeRequisite.phone}</span>
+                    </div>
+                  )}
+                  {activeRequisite.cardNumber && (
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-28 shrink-0">Номер карты</span>
+                      <span className="font-mono">{activeRequisite.cardNumber}</span>
+                    </div>
+                  )}
+                  {activeRequisite.email && (
+                    <div className="flex gap-2">
+                      <span className="text-muted-foreground w-28 shrink-0">Email</span>
+                      <span>{activeRequisite.email}</span>
+                    </div>
+                  )}
+                  {activeRequisite.paymentComment && (
+                    <div className="flex gap-2 sm:col-span-2">
+                      <span className="text-muted-foreground w-28 shrink-0">Назначение</span>
+                      <span className="italic text-blue-900">{activeRequisite.paymentComment}</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-3">
+                  После оплаты отправьте чек на почту или в чат поддержки — баланс будет скорректирован вручную.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Lead history */}
           {leads.length > 0 ? (

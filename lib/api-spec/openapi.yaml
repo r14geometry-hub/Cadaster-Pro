@@ -1007,6 +1007,151 @@ paths:
                 items:
                   $ref: "#/components/schemas/RegionItem"
 
+  /payment-requisites/active:
+    get:
+      operationId: getActivePaymentRequisite
+      tags: [payment-requisites]
+      summary: Get active payment requisite (for engineers, authenticated)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active payment requisite
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequisite"
+        "404":
+          description: No active requisite
+
+  /admin/payment-requisites:
+    get:
+      operationId: listAdminPaymentRequisites
+      tags: [payment-requisites]
+      summary: List all payment requisites (superadmin)
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: List of payment requisites
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentRequisiteAdmin"
+    post:
+      operationId: createAdminPaymentRequisite
+      tags: [payment-requisites]
+      summary: Create payment requisite (superadmin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequisiteCreate"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequisiteAdmin"
+
+  /admin/payment-requisites/{id}:
+    patch:
+      operationId: updateAdminPaymentRequisite
+      tags: [payment-requisites]
+      summary: Update payment requisite fields (superadmin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentRequisiteUpdate"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequisiteAdmin"
+
+  /admin/payment-requisites/{id}/activate:
+    post:
+      operationId: activateAdminPaymentRequisite
+      tags: [payment-requisites]
+      summary: Set requisite as active, archive others (superadmin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequisiteAdmin"
+
+  /admin/payment-requisites/{id}/archive:
+    post:
+      operationId: archiveAdminPaymentRequisite
+      tags: [payment-requisites]
+      summary: Archive a requisite (superadmin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Archived
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentRequisiteAdmin"
+
+  /admin/payment-requisites/{id}/log:
+    get:
+      operationId: getAdminPaymentRequisiteLog
+      tags: [payment-requisites]
+      summary: Get audit log for a requisite (superadmin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Audit log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PaymentRequisiteLogEntry"
+
   /admin/regions:
     get:
       operationId: listAdminRegions
@@ -2175,6 +2320,124 @@ components:
           type: integer
         percentFee:
           type: number
+
+    PaymentRequisite:
+      type: object
+      description: Public payment requisite (shown to engineers)
+      properties:
+        id:
+          type: integer
+        recipientType:
+          type: string
+          enum: [individual, self_employed, ip, company]
+        fullName:
+          type: string
+        cardNumber:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        bank:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        paymentComment:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, archive]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, recipientType, fullName, status, createdAt, updatedAt]
+
+    PaymentRequisiteAdmin:
+      allOf:
+        - $ref: "#/components/schemas/PaymentRequisite"
+        - type: object
+          properties:
+            createdBy:
+              type: integer
+              nullable: true
+            createdByName:
+              type: string
+              nullable: true
+
+    PaymentRequisiteCreate:
+      type: object
+      properties:
+        recipientType:
+          type: string
+          enum: [individual, self_employed, ip, company]
+          default: individual
+        fullName:
+          type: string
+        cardNumber:
+          type: string
+        phone:
+          type: string
+        bank:
+          type: string
+        email:
+          type: string
+        paymentComment:
+          type: string
+      required: [fullName]
+
+    PaymentRequisiteUpdate:
+      type: object
+      properties:
+        recipientType:
+          type: string
+          enum: [individual, self_employed, ip, company]
+        fullName:
+          type: string
+        cardNumber:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        bank:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        paymentComment:
+          type: string
+          nullable: true
+
+    PaymentRequisiteLogEntry:
+      type: object
+      properties:
+        id:
+          type: integer
+        action:
+          type: string
+        fieldName:
+          type: string
+          nullable: true
+        oldValue:
+          type: string
+          nullable: true
+        newValue:
+          type: string
+          nullable: true
+        changedAt:
+          type: string
+          format: date-time
+        changedByName:
+          type: string
+          nullable: true
+      required: [id, action, changedAt]
 
     AddressSuggestion:
       type: object

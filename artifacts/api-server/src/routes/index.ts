@@ -11,6 +11,7 @@ import statsRouter from "./stats";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
 import addressRouter from "./address";
+import paymentRequisitesRouter from "./paymentRequisites";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use(statsRouter);
 router.use(adminRouter);
 router.use(storageRouter);
 router.use(addressRouter);
+router.use(paymentRequisitesRouter);
 
 export default router;

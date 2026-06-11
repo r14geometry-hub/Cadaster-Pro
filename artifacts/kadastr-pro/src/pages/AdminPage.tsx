@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -33,6 +34,15 @@ import {
   useResolveComplaint,
   useListAdminRegions, getListAdminRegionsQueryKey,
   useUpdateAdminRegion,
+  useListAdminPaymentRequisites, getListAdminPaymentRequisitesQueryKey,
+  useCreateAdminPaymentRequisite,
+  useUpdateAdminPaymentRequisite,
+  useActivateAdminPaymentRequisite,
+  useArchiveAdminPaymentRequisite,
+  useGetAdminPaymentRequisiteLog,
+  type PaymentRequisiteAdmin,
+  type PaymentRequisiteCreate,
+  type PaymentRequisiteUpdate,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,6 +50,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck,
   RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown, Clock, MapPin,
+  CreditCard, Plus, Archive, ChevronDown, ChevronUp, Pencil, History,
 } from "lucide-react";
 
 const DEBT_LIMIT = 3000;
@@ -321,6 +332,12 @@ export default function AdminPage() {
             <TabsTrigger value="geography" data-testid="tab-admin-geography">
               <MapPin className="w-3.5 h-3.5 mr-1" />
               География
+            </TabsTrigger>
+          )}
+          {isSuperAdmin && (
+            <TabsTrigger value="requisites" data-testid="tab-admin-requisites">
+              <CreditCard className="w-3.5 h-3.5 mr-1" />
+              Реквизиты
             </TabsTrigger>
           )}
         </TabsList>
@@ -1110,6 +1127,13 @@ export default function AdminPage() {
             <GeographyTab />
           </TabsContent>
         )}
+
+        {/* ── Requisites ─────────────────────────────────────────────────────── */}
+        {isSuperAdmin && (
+          <TabsContent value="requisites">
+            <RequisitesTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
@@ -1459,6 +1483,352 @@ function ComplaintTranscript({ complaint }: { complaint: ComplaintItem }) {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+const RECIPIENT_TYPE_LABELS: Record<string, string> = {
+  individual: "Физлицо",
+  self_employed: "Самозанятый",
+  ip: "ИП",
+  company: "ООО",
+};
+
+const emptyReqForm = (): PaymentRequisiteCreate => ({
+  fullName: "",
+  recipientType: "individual",
+  bank: "",
+  cardNumber: "",
+  phone: "",
+  email: "",
+  paymentComment: "",
+});
+
+function ReqFormFields({
+  form,
+  onChange,
+}: {
+  form: PaymentRequisiteCreate | PaymentRequisiteUpdate;
+  onChange: (f: PaymentRequisiteCreate | PaymentRequisiteUpdate) => void;
+}) {
+  return (
+    <div className="grid sm:grid-cols-2 gap-3">
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Тип получателя</label>
+        <Select value={form.recipientType ?? "individual"} onValueChange={(v) => onChange({ ...form, recipientType: v as PaymentRequisiteCreate["recipientType"] })}>
+          <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(RECIPIENT_TYPE_LABELS).map(([v, l]) => (
+              <SelectItem key={v} value={v}>{l}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">ФИО / Название</label>
+        <Input className="h-8 text-sm" value={form.fullName ?? ""} onChange={(e) => onChange({ ...form, fullName: e.target.value })} placeholder="Иванов Иван Иванович" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Банк</label>
+        <Input className="h-8 text-sm" value={form.bank ?? ""} onChange={(e) => onChange({ ...form, bank: e.target.value })} placeholder="Сбербанк" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Номер карты</label>
+        <Input className="h-8 text-sm" value={form.cardNumber ?? ""} onChange={(e) => onChange({ ...form, cardNumber: e.target.value })} placeholder="4276 **** **** 1234" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Телефон СБП</label>
+        <Input className="h-8 text-sm" value={form.phone ?? ""} onChange={(e) => onChange({ ...form, phone: e.target.value })} placeholder="+7 999 123-45-67" />
+      </div>
+      <div className="space-y-1">
+        <label className="text-xs font-medium text-muted-foreground">Email</label>
+        <Input className="h-8 text-sm" value={form.email ?? ""} onChange={(e) => onChange({ ...form, email: e.target.value })} placeholder="payment@example.com" />
+      </div>
+      <div className="space-y-1 sm:col-span-2">
+        <label className="text-xs font-medium text-muted-foreground">Назначение платежа</label>
+        <Textarea className="text-sm resize-none" rows={2} value={form.paymentComment ?? ""} onChange={(e) => onChange({ ...form, paymentComment: e.target.value })} placeholder="Оплата задолженности за лиды КадастрПро" />
+      </div>
+    </div>
+  );
+}
+
+function RequisitesTab() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const { data: requisites, isLoading } = useListAdminPaymentRequisites();
+  const createMutation = useCreateAdminPaymentRequisite();
+  const updateMutation = useUpdateAdminPaymentRequisite();
+  const activateMutation = useActivateAdminPaymentRequisite();
+  const archiveMutation = useArchiveAdminPaymentRequisite();
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [logId, setLogId] = useState<number | null>(null);
+  const [createForm, setCreateForm] = useState<PaymentRequisiteCreate>(emptyReqForm());
+  const [editForm, setEditForm] = useState<PaymentRequisiteUpdate>({});
+
+  const activeRequisite = requisites?.find((r) => r.status === "active");
+
+  function startEdit(r: PaymentRequisiteAdmin) {
+    setEditingId(r.id);
+    setEditForm({
+      fullName: r.fullName,
+      recipientType: r.recipientType as PaymentRequisiteUpdate["recipientType"],
+      bank: r.bank ?? "",
+      cardNumber: r.cardNumber ?? "",
+      phone: r.phone ?? "",
+      email: r.email ?? "",
+      paymentComment: r.paymentComment ?? "",
+    });
+    setLogId(null);
+  }
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: getListAdminPaymentRequisitesQueryKey() });
+  }
+
+  async function handleCreate() {
+    if (!createForm.fullName.trim()) {
+      toast({ title: "ФИО обязательно", variant: "destructive" });
+      return;
+    }
+    try {
+      await createMutation.mutateAsync({ data: createForm });
+      invalidate();
+      toast({ title: "Реквизиты созданы" });
+      setShowCreate(false);
+      setCreateForm(emptyReqForm());
+    } catch {
+      toast({ title: "Ошибка при создании", variant: "destructive" });
+    }
+  }
+
+  async function handleUpdate() {
+    if (!editingId) return;
+    try {
+      await updateMutation.mutateAsync({ id: editingId, data: editForm });
+      invalidate();
+      toast({ title: "Реквизиты обновлены" });
+      setEditingId(null);
+    } catch {
+      toast({ title: "Ошибка при обновлении", variant: "destructive" });
+    }
+  }
+
+  async function handleActivate(id: number) {
+    try {
+      await activateMutation.mutateAsync({ id });
+      invalidate();
+      toast({ title: "Реквизиты активированы" });
+    } catch {
+      toast({ title: "Ошибка при активации", variant: "destructive" });
+    }
+  }
+
+  async function handleArchive(id: number) {
+    try {
+      await archiveMutation.mutateAsync({ id });
+      invalidate();
+      toast({ title: "Реквизиты архивированы" });
+    } catch {
+      toast({ title: "Ошибка при архивации", variant: "destructive" });
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-base">Реквизиты для оплаты</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Только активные реквизиты видят инженеры в личном кабинете</p>
+        </div>
+        <Button size="sm" onClick={() => { setShowCreate(!showCreate); setEditingId(null); }}>
+          <Plus className="w-4 h-4 mr-1" />Создать
+        </Button>
+      </div>
+
+      {/* No active warning */}
+      {!isLoading && !activeRequisite && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          Нет активных реквизитов. Инженеры не видят, куда перечислять оплату.
+        </div>
+      )}
+
+      {/* Active preview */}
+      {activeRequisite && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-green-800 flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4" />
+              Активные реквизиты
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="grid sm:grid-cols-3 gap-x-6 gap-y-1 text-sm">
+              <span className="text-muted-foreground">Получатель</span>
+              <span className="sm:col-span-2 font-medium">{activeRequisite.fullName} ({RECIPIENT_TYPE_LABELS[activeRequisite.recipientType] ?? activeRequisite.recipientType})</span>
+              {activeRequisite.bank && <><span className="text-muted-foreground">Банк</span><span className="sm:col-span-2">{activeRequisite.bank}</span></>}
+              {activeRequisite.cardNumber && <><span className="text-muted-foreground">Карта</span><span className="sm:col-span-2 font-mono">{activeRequisite.cardNumber}</span></>}
+              {activeRequisite.phone && <><span className="text-muted-foreground">СБП / Тел.</span><span className="sm:col-span-2">{activeRequisite.phone}</span></>}
+              {activeRequisite.email && <><span className="text-muted-foreground">Email</span><span className="sm:col-span-2">{activeRequisite.email}</span></>}
+              {activeRequisite.paymentComment && <><span className="text-muted-foreground">Назначение</span><span className="sm:col-span-2 italic">{activeRequisite.paymentComment}</span></>}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create form */}
+      {showCreate && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Новые реквизиты</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ReqFormFields form={createForm} onChange={(f) => setCreateForm(f as PaymentRequisiteCreate)} />
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" onClick={handleCreate} disabled={createMutation.isPending}>Создать</Button>
+              <Button size="sm" variant="outline" onClick={() => setShowCreate(false)}>Отмена</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Table */}
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <Skeleton className="h-40 m-4 rounded" />
+          ) : !requisites?.length ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">Реквизиты ещё не созданы</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-28">Статус</TableHead>
+                    <TableHead>ФИО / Название</TableHead>
+                    <TableHead>Тип</TableHead>
+                    <TableHead>Банк</TableHead>
+                    <TableHead>Карта</TableHead>
+                    <TableHead>СБП</TableHead>
+                    <TableHead className="w-8">Создан</TableHead>
+                    <TableHead className="w-36 text-right">Действия</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {requisites.map((r) => (
+                    <>
+                      <TableRow key={r.id} className={editingId === r.id ? "bg-muted/40" : ""}>
+                        <TableCell>
+                          <Badge className={r.status === "active" ? "bg-green-100 text-green-800 border-green-200" : "bg-gray-100 text-gray-600 border-gray-200"}>
+                            {r.status === "active" ? "Активен" : "Архив"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium text-sm">{r.fullName}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{RECIPIENT_TYPE_LABELS[r.recipientType] ?? r.recipientType}</TableCell>
+                        <TableCell className="text-sm">{r.bank ?? "—"}</TableCell>
+                        <TableCell className="text-sm font-mono">{r.cardNumber ?? "—"}</TableCell>
+                        <TableCell className="text-sm">{r.phone ?? "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{new Date(r.createdAt).toLocaleDateString("ru-RU")}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            {r.status !== "active" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-green-700 hover:bg-green-50" onClick={() => handleActivate(r.id)} title="Активировать">
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            {r.status === "active" && (
+                              <Button size="sm" variant="ghost" className="h-7 px-2 text-gray-500 hover:bg-gray-100" onClick={() => handleArchive(r.id)} title="Архивировать">
+                                <Archive className="w-3.5 h-3.5" />
+                              </Button>
+                            )}
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-blue-600 hover:bg-blue-50" onClick={() => (editingId === r.id ? setEditingId(null) : startEdit(r))} title="Изменить">
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button size="sm" variant="ghost" className="h-7 px-2 text-muted-foreground hover:bg-muted" onClick={() => setLogId(logId === r.id ? null : r.id)} title="Журнал изменений">
+                              <History className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Inline edit form */}
+                      {editingId === r.id && (
+                        <TableRow key={`${r.id}-edit`}>
+                          <TableCell colSpan={8} className="bg-muted/30 px-5 py-4">
+                            <p className="text-xs font-medium text-muted-foreground mb-3">Редактирование реквизита #{r.id}</p>
+                            <ReqFormFields form={editForm} onChange={(f) => setEditForm(f as PaymentRequisiteUpdate)} />
+                            <div className="flex gap-2 mt-3">
+                              <Button size="sm" onClick={handleUpdate} disabled={updateMutation.isPending}>Сохранить</Button>
+                              <Button size="sm" variant="outline" onClick={() => setEditingId(null)}>Отмена</Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+
+                      {/* Audit log */}
+                      {logId === r.id && (
+                        <TableRow key={`${r.id}-log`}>
+                          <TableCell colSpan={8} className="bg-muted/20 px-5 py-4">
+                            <RequisiteLogPanel id={r.id} />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function RequisiteLogPanel({ id }: { id: number }) {
+  const { data: log, isLoading } = useGetAdminPaymentRequisiteLog(id);
+
+  const ACTION_LABELS: Record<string, string> = {
+    create: "Создание",
+    update: "Изменение",
+    status_change: "Смена статуса",
+  };
+
+  if (isLoading) return <Skeleton className="h-20 rounded" />;
+  if (!log?.length) return <p className="text-xs text-muted-foreground py-2">История изменений пуста</p>;
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
+        <History className="w-3.5 h-3.5" />
+        Журнал изменений реквизита #{id}
+      </p>
+      <div className="space-y-1">
+        {log.map((entry) => (
+          <div key={entry.id} className="flex items-start gap-3 text-xs py-1.5 border-b last:border-0">
+            <span className="text-muted-foreground whitespace-nowrap">
+              {new Date(entry.changedAt).toLocaleString("ru-RU", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            </span>
+            <Badge variant="outline" className="text-[10px] h-4 px-1 shrink-0">
+              {ACTION_LABELS[entry.action] ?? entry.action}
+            </Badge>
+            {entry.fieldName && (
+              <span className="text-muted-foreground">
+                <span className="font-mono bg-muted px-1 rounded">{entry.fieldName}</span>
+                {entry.oldValue !== null && <> : <span className="line-through opacity-60">{entry.oldValue}</span></>}
+                {entry.newValue !== null && <> → <span className="text-foreground font-medium">{entry.newValue}</span></>}
+              </span>
+            )}
+            {entry.changedByName && (
+              <span className="ml-auto text-muted-foreground shrink-0">{entry.changedByName}</span>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

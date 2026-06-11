@@ -1713,6 +1713,166 @@ export const ListRegionsResponse = zod.array(ListRegionsResponseItem)
 
 
 /**
+ * @summary Get active payment requisite (for engineers, authenticated)
+ */
+export const GetActivePaymentRequisiteResponse = zod.object({
+  "id": zod.number(),
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish(),
+  "status": zod.enum(['active', 'archive']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public payment requisite (shown to engineers)')
+
+
+/**
+ * @summary List all payment requisites (superadmin)
+ */
+export const ListAdminPaymentRequisitesResponseItem = zod.object({
+  "id": zod.number(),
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish(),
+  "status": zod.enum(['active', 'archive']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public payment requisite (shown to engineers)').and(zod.object({
+  "createdBy": zod.number().nullish(),
+  "createdByName": zod.string().nullish()
+}))
+export const ListAdminPaymentRequisitesResponse = zod.array(ListAdminPaymentRequisitesResponseItem)
+
+
+/**
+ * @summary Create payment requisite (superadmin)
+ */
+export const createAdminPaymentRequisiteBodyRecipientTypeDefault = `individual`;
+
+export const CreateAdminPaymentRequisiteBody = zod.object({
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']).default(createAdminPaymentRequisiteBodyRecipientTypeDefault),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().optional(),
+  "phone": zod.string().optional(),
+  "bank": zod.string().optional(),
+  "email": zod.string().optional(),
+  "paymentComment": zod.string().optional()
+})
+
+
+/**
+ * @summary Update payment requisite fields (superadmin)
+ */
+export const UpdateAdminPaymentRequisiteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateAdminPaymentRequisiteBody = zod.object({
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']).optional(),
+  "fullName": zod.string().optional(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish()
+})
+
+export const UpdateAdminPaymentRequisiteResponse = zod.object({
+  "id": zod.number(),
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish(),
+  "status": zod.enum(['active', 'archive']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public payment requisite (shown to engineers)').and(zod.object({
+  "createdBy": zod.number().nullish(),
+  "createdByName": zod.string().nullish()
+}))
+
+
+/**
+ * @summary Set requisite as active, archive others (superadmin)
+ */
+export const ActivateAdminPaymentRequisiteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ActivateAdminPaymentRequisiteResponse = zod.object({
+  "id": zod.number(),
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish(),
+  "status": zod.enum(['active', 'archive']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public payment requisite (shown to engineers)').and(zod.object({
+  "createdBy": zod.number().nullish(),
+  "createdByName": zod.string().nullish()
+}))
+
+
+/**
+ * @summary Archive a requisite (superadmin)
+ */
+export const ArchiveAdminPaymentRequisiteParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ArchiveAdminPaymentRequisiteResponse = zod.object({
+  "id": zod.number(),
+  "recipientType": zod.enum(['individual', 'self_employed', 'ip', 'company']),
+  "fullName": zod.string(),
+  "cardNumber": zod.string().nullish(),
+  "phone": zod.string().nullish(),
+  "bank": zod.string().nullish(),
+  "email": zod.string().nullish(),
+  "paymentComment": zod.string().nullish(),
+  "status": zod.enum(['active', 'archive']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+}).describe('Public payment requisite (shown to engineers)').and(zod.object({
+  "createdBy": zod.number().nullish(),
+  "createdByName": zod.string().nullish()
+}))
+
+
+/**
+ * @summary Get audit log for a requisite (superadmin)
+ */
+export const GetAdminPaymentRequisiteLogParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetAdminPaymentRequisiteLogResponseItem = zod.object({
+  "id": zod.number(),
+  "action": zod.string(),
+  "fieldName": zod.string().nullish(),
+  "oldValue": zod.string().nullish(),
+  "newValue": zod.string().nullish(),
+  "changedAt": zod.coerce.date(),
+  "changedByName": zod.string().nullish()
+})
+export const GetAdminPaymentRequisiteLogResponse = zod.array(GetAdminPaymentRequisiteLogResponseItem)
+
+
+/**
  * @summary Get all regions with stats (superadmin only)
  */
 export const ListAdminRegionsResponseItem = zod.object({

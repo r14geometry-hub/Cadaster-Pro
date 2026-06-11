@@ -497,6 +497,96 @@ export interface RegionUpdate {
   percentFee?: number;
 }
 
+export type PaymentRequisiteRecipientType = typeof PaymentRequisiteRecipientType[keyof typeof PaymentRequisiteRecipientType];
+
+
+export const PaymentRequisiteRecipientType = {
+  individual: 'individual',
+  self_employed: 'self_employed',
+  ip: 'ip',
+  company: 'company',
+} as const;
+
+export type PaymentRequisiteStatus = typeof PaymentRequisiteStatus[keyof typeof PaymentRequisiteStatus];
+
+
+export const PaymentRequisiteStatus = {
+  active: 'active',
+  archive: 'archive',
+} as const;
+
+/**
+ * Public payment requisite (shown to engineers)
+ */
+export interface PaymentRequisite {
+  id: number;
+  recipientType: PaymentRequisiteRecipientType;
+  fullName: string;
+  cardNumber?: string | null;
+  phone?: string | null;
+  bank?: string | null;
+  email?: string | null;
+  paymentComment?: string | null;
+  status: PaymentRequisiteStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type PaymentRequisiteAdmin = PaymentRequisite & ({
+  createdBy?: number | null;
+  createdByName?: string | null;
+});
+
+export type PaymentRequisiteCreateRecipientType = typeof PaymentRequisiteCreateRecipientType[keyof typeof PaymentRequisiteCreateRecipientType];
+
+
+export const PaymentRequisiteCreateRecipientType = {
+  individual: 'individual',
+  self_employed: 'self_employed',
+  ip: 'ip',
+  company: 'company',
+} as const;
+
+export interface PaymentRequisiteCreate {
+  recipientType?: PaymentRequisiteCreateRecipientType;
+  fullName: string;
+  cardNumber?: string;
+  phone?: string;
+  bank?: string;
+  email?: string;
+  paymentComment?: string;
+}
+
+export type PaymentRequisiteUpdateRecipientType = typeof PaymentRequisiteUpdateRecipientType[keyof typeof PaymentRequisiteUpdateRecipientType];
+
+
+export const PaymentRequisiteUpdateRecipientType = {
+  individual: 'individual',
+  self_employed: 'self_employed',
+  ip: 'ip',
+  company: 'company',
+} as const;
+
+export interface PaymentRequisiteUpdate {
+  recipientType?: PaymentRequisiteUpdateRecipientType;
+  fullName?: string;
+  cardNumber?: string | null;
+  phone?: string | null;
+  bank?: string | null;
+  email?: string | null;
+  paymentComment?: string | null;
+}
+
+export interface PaymentRequisiteLogEntry {
+  id: number;
+  action: string;
+  fieldName?: string | null;
+  oldValue?: string | null;
+  newValue?: string | null;
+  changedAt: string;
+  changedByName?: string | null;
+}
+
 export type AddressSuggestionLevel = typeof AddressSuggestionLevel[keyof typeof AddressSuggestionLevel];
 
 

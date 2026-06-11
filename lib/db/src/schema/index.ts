@@ -12,3 +12,4 @@ export * from "./regions";
 export * from "./verification_logs";
 export * from "./complaints";
 export * from "./notifications";
+export * from "./payment_requisites";

@@ -76,6 +76,11 @@ import type {
   OrderInput,
   OrderList,
   OrderUpdate,
+  PaymentRequisite,
+  PaymentRequisiteAdmin,
+  PaymentRequisiteCreate,
+  PaymentRequisiteLogEntry,
+  PaymentRequisiteUpdate,
   PlatformSettings,
   PlatformSettingsInput,
   RegionItem,
@@ -3572,6 +3577,520 @@ export function useListRegions<TData = Awaited<ReturnType<typeof listRegions>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListRegionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetActivePaymentRequisiteUrl = () => {
+
+
+
+
+  return `/api/payment-requisites/active`
+}
+
+/**
+ * @summary Get active payment requisite (for engineers, authenticated)
+ */
+export const getActivePaymentRequisite = async ( options?: RequestInit): Promise<PaymentRequisite> => {
+
+  return customFetch<PaymentRequisite>(getGetActivePaymentRequisiteUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivePaymentRequisiteQueryKey = () => {
+    return [
+    `/api/payment-requisites/active`
+    ] as const;
+    }
+
+
+export const getGetActivePaymentRequisiteQueryOptions = <TData = Awaited<ReturnType<typeof getActivePaymentRequisite>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivePaymentRequisite>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivePaymentRequisiteQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivePaymentRequisite>>> = ({ signal }) => getActivePaymentRequisite({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActivePaymentRequisite>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActivePaymentRequisiteQueryResult = NonNullable<Awaited<ReturnType<typeof getActivePaymentRequisite>>>
+export type GetActivePaymentRequisiteQueryError = ErrorType<void>
+
+
+/**
+ * @summary Get active payment requisite (for engineers, authenticated)
+ */
+
+export function useGetActivePaymentRequisite<TData = Awaited<ReturnType<typeof getActivePaymentRequisite>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivePaymentRequisite>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActivePaymentRequisiteQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getListAdminPaymentRequisitesUrl = () => {
+
+
+
+
+  return `/api/admin/payment-requisites`
+}
+
+/**
+ * @summary List all payment requisites (superadmin)
+ */
+export const listAdminPaymentRequisites = async ( options?: RequestInit): Promise<PaymentRequisiteAdmin[]> => {
+
+  return customFetch<PaymentRequisiteAdmin[]>(getListAdminPaymentRequisitesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminPaymentRequisitesQueryKey = () => {
+    return [
+    `/api/admin/payment-requisites`
+    ] as const;
+    }
+
+
+export const getListAdminPaymentRequisitesQueryOptions = <TData = Awaited<ReturnType<typeof listAdminPaymentRequisites>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPaymentRequisites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminPaymentRequisitesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminPaymentRequisites>>> = ({ signal }) => listAdminPaymentRequisites({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminPaymentRequisites>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminPaymentRequisitesQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminPaymentRequisites>>>
+export type ListAdminPaymentRequisitesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all payment requisites (superadmin)
+ */
+
+export function useListAdminPaymentRequisites<TData = Awaited<ReturnType<typeof listAdminPaymentRequisites>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminPaymentRequisites>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminPaymentRequisitesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateAdminPaymentRequisiteUrl = () => {
+
+
+
+
+  return `/api/admin/payment-requisites`
+}
+
+/**
+ * @summary Create payment requisite (superadmin)
+ */
+export const createAdminPaymentRequisite = async (paymentRequisiteCreate: PaymentRequisiteCreate, options?: RequestInit): Promise<PaymentRequisiteAdmin> => {
+
+  return customFetch<PaymentRequisiteAdmin>(getCreateAdminPaymentRequisiteUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      paymentRequisiteCreate,)
+  }
+);}
+
+
+
+
+export const getCreateAdminPaymentRequisiteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminPaymentRequisite>>, TError,{data: BodyType<PaymentRequisiteCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createAdminPaymentRequisite>>, TError,{data: BodyType<PaymentRequisiteCreate>}, TContext> => {
+
+const mutationKey = ['createAdminPaymentRequisite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createAdminPaymentRequisite>>, {data: BodyType<PaymentRequisiteCreate>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createAdminPaymentRequisite(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateAdminPaymentRequisiteMutationResult = NonNullable<Awaited<ReturnType<typeof createAdminPaymentRequisite>>>
+    export type CreateAdminPaymentRequisiteMutationBody = BodyType<PaymentRequisiteCreate>
+    export type CreateAdminPaymentRequisiteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Create payment requisite (superadmin)
+ */
+export const useCreateAdminPaymentRequisite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createAdminPaymentRequisite>>, TError,{data: BodyType<PaymentRequisiteCreate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createAdminPaymentRequisite>>,
+        TError,
+        {data: BodyType<PaymentRequisiteCreate>},
+        TContext
+      > => {
+      return useMutation(getCreateAdminPaymentRequisiteMutationOptions(options));
+    }
+
+export const getUpdateAdminPaymentRequisiteUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payment-requisites/${id}`
+}
+
+/**
+ * @summary Update payment requisite fields (superadmin)
+ */
+export const updateAdminPaymentRequisite = async (id: number,
+    paymentRequisiteUpdate: PaymentRequisiteUpdate, options?: RequestInit): Promise<PaymentRequisiteAdmin> => {
+
+  return customFetch<PaymentRequisiteAdmin>(getUpdateAdminPaymentRequisiteUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      paymentRequisiteUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminPaymentRequisiteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminPaymentRequisite>>, TError,{id: number;data: BodyType<PaymentRequisiteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminPaymentRequisite>>, TError,{id: number;data: BodyType<PaymentRequisiteUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminPaymentRequisite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminPaymentRequisite>>, {id: number;data: BodyType<PaymentRequisiteUpdate>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateAdminPaymentRequisite(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminPaymentRequisiteMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminPaymentRequisite>>>
+    export type UpdateAdminPaymentRequisiteMutationBody = BodyType<PaymentRequisiteUpdate>
+    export type UpdateAdminPaymentRequisiteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Update payment requisite fields (superadmin)
+ */
+export const useUpdateAdminPaymentRequisite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminPaymentRequisite>>, TError,{id: number;data: BodyType<PaymentRequisiteUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminPaymentRequisite>>,
+        TError,
+        {id: number;data: BodyType<PaymentRequisiteUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminPaymentRequisiteMutationOptions(options));
+    }
+
+export const getActivateAdminPaymentRequisiteUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payment-requisites/${id}/activate`
+}
+
+/**
+ * @summary Set requisite as active, archive others (superadmin)
+ */
+export const activateAdminPaymentRequisite = async (id: number, options?: RequestInit): Promise<PaymentRequisiteAdmin> => {
+
+  return customFetch<PaymentRequisiteAdmin>(getActivateAdminPaymentRequisiteUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getActivateAdminPaymentRequisiteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateAdminPaymentRequisite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof activateAdminPaymentRequisite>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['activateAdminPaymentRequisite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof activateAdminPaymentRequisite>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  activateAdminPaymentRequisite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ActivateAdminPaymentRequisiteMutationResult = NonNullable<Awaited<ReturnType<typeof activateAdminPaymentRequisite>>>
+
+    export type ActivateAdminPaymentRequisiteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set requisite as active, archive others (superadmin)
+ */
+export const useActivateAdminPaymentRequisite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof activateAdminPaymentRequisite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof activateAdminPaymentRequisite>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getActivateAdminPaymentRequisiteMutationOptions(options));
+    }
+
+export const getArchiveAdminPaymentRequisiteUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payment-requisites/${id}/archive`
+}
+
+/**
+ * @summary Archive a requisite (superadmin)
+ */
+export const archiveAdminPaymentRequisite = async (id: number, options?: RequestInit): Promise<PaymentRequisiteAdmin> => {
+
+  return customFetch<PaymentRequisiteAdmin>(getArchiveAdminPaymentRequisiteUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getArchiveAdminPaymentRequisiteMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['archiveAdminPaymentRequisite'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  archiveAdminPaymentRequisite(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ArchiveAdminPaymentRequisiteMutationResult = NonNullable<Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>>
+
+    export type ArchiveAdminPaymentRequisiteMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Archive a requisite (superadmin)
+ */
+export const useArchiveAdminPaymentRequisite = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof archiveAdminPaymentRequisite>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getArchiveAdminPaymentRequisiteMutationOptions(options));
+    }
+
+export const getGetAdminPaymentRequisiteLogUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/payment-requisites/${id}/log`
+}
+
+/**
+ * @summary Get audit log for a requisite (superadmin)
+ */
+export const getAdminPaymentRequisiteLog = async (id: number, options?: RequestInit): Promise<PaymentRequisiteLogEntry[]> => {
+
+  return customFetch<PaymentRequisiteLogEntry[]>(getGetAdminPaymentRequisiteLogUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminPaymentRequisiteLogQueryKey = (id: number,) => {
+    return [
+    `/api/admin/payment-requisites/${id}/log`
+    ] as const;
+    }
+
+
+export const getGetAdminPaymentRequisiteLogQueryOptions = <TData = Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminPaymentRequisiteLogQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>> = ({ signal }) => getAdminPaymentRequisiteLog(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminPaymentRequisiteLogQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>>
+export type GetAdminPaymentRequisiteLogQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get audit log for a requisite (superadmin)
+ */
+
+export function useGetAdminPaymentRequisiteLog<TData = Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminPaymentRequisiteLog>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminPaymentRequisiteLogQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
