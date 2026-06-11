@@ -1,9 +1,13 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, bidsTable } from "@workspace/db";
-import { eq, and, sql } from "drizzle-orm";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable } from "@workspace/db";
+import { eq, and, sql, gte } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 
 const router = Router();
+
+function parseJson(s: string): unknown[] {
+  try { return JSON.parse(s); } catch { return []; }
+}
 
 router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) => {
   try {
@@ -16,6 +20,7 @@ router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) =
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const [{ total: newUsersThisMonth }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable).where(sql`${usersTable.createdAt} >= ${monthStart.toISOString()}`);
+    const [{ total: totalDebt }] = await db.select({ total: sql<number>`coalesce(sum(lead_cost), 0)` }).from(leadsTable).where(eq(leadsTable.paymentStatus, "unpaid"));
     res.json({
       totalUsers: Number(totalUsers),
       totalEngineers: Number(totalEngineers),
@@ -23,7 +28,7 @@ router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) =
       totalOrders: Number(totalOrders),
       openOrders: Number(openOrders),
       completedOrders: Number(completedOrders),
-      totalRevenue: 0,
+      totalRevenue: Number(totalDebt),
       newUsersThisMonth: Number(newUsersThisMonth),
     });
   } catch (err) {
@@ -52,7 +57,7 @@ router.get("/admin/users", requireAuth, requireRole("admin"), async (req, res) =
 
 router.patch("/admin/users/:userId", requireAuth, requireRole("admin"), async (req, res) => {
   try {
-    const userId = parseInt(req.params.userId);
+    const userId = parseInt(req.params.userId as string);
     const { role, isBlocked } = req.body;
     const updates: Record<string, unknown> = {};
     if (role !== undefined) updates.role = role;
@@ -79,6 +84,211 @@ router.get("/admin/orders", requireAuth, requireRole("admin"), async (req, res) 
     const all = await query.orderBy(sql`${ordersTable.createdAt} desc`).limit(limit).offset(offset);
     const items = all.map(o => ({ ...o, budget: o.budget ?? null, deadline: o.deadline ?? null }));
     res.json({ items, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Lead Prices ──────────────────────────────────────────────────────────────
+
+router.get("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const prices = await db.select().from(leadPricesTable).orderBy(leadPricesTable.serviceType);
+    res.json(prices);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.put("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { prices } = req.body as { prices: Array<{ serviceType: string; price: number }> };
+    if (!Array.isArray(prices)) { res.status(400).json({ error: "prices array required" }); return; }
+
+    const updated = [];
+    for (const { serviceType, price } of prices) {
+      const [row] = await db.insert(leadPricesTable)
+        .values({ serviceType, price })
+        .onConflictDoUpdate({ target: leadPricesTable.serviceType, set: { price, updatedAt: new Date() } })
+        .returning();
+      updated.push(row);
+    }
+    res.json(updated);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Leads Management ──────────────────────────────────────────────────────────
+
+router.get("/admin/leads", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { engineerId, paymentStatus, page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 30;
+    const offset = (pageNum - 1) * limit;
+
+    let query = db.select().from(leadsTable).$dynamic();
+    const conditions = [];
+    if (engineerId) conditions.push(eq(leadsTable.engineerId, parseInt(engineerId)));
+    if (paymentStatus) conditions.push(eq(leadsTable.paymentStatus, paymentStatus));
+    if (conditions.length > 0) query = query.where(and(...conditions));
+
+    const all = await query.orderBy(sql`${leadsTable.createdAt} desc`).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(leadsTable);
+
+    // Enrich with engineer name
+    const enriched = await Promise.all(all.map(async (lead) => {
+      const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, lead.engineerId)).limit(1);
+      const [user] = eng ? await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1) : [null];
+      return {
+        ...lead,
+        engineerName: user?.name ?? "—",
+      };
+    }));
+
+    res.json({ items: enriched, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const leadId = parseInt(req.params.leadId as string);
+    const { paymentStatus } = req.body;
+    if (!paymentStatus) { res.status(400).json({ error: "paymentStatus required" }); return; }
+
+    const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, leadId)).limit(1);
+    if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }
+
+    const [updated] = await db.update(leadsTable)
+      .set({ paymentStatus })
+      .where(eq(leadsTable.id, leadId))
+      .returning();
+
+    // If marking as paid, reduce engineer's debtAmount
+    if (paymentStatus === "paid" && lead.paymentStatus === "unpaid") {
+      await db.update(engineersTable)
+        .set({ debtAmount: sql`greatest(0, ${engineersTable.debtAmount} - ${lead.leadCost})` })
+        .where(eq(engineersTable.id, lead.engineerId));
+    }
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Per-engineer debt summary
+router.get("/admin/leads/summary", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const engineers = await db.select().from(engineersTable).orderBy(sql`${engineersTable.debtAmount} desc`);
+    const summary = await Promise.all(engineers.map(async (eng) => {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1);
+      const allLeads = await db.select().from(leadsTable).where(eq(leadsTable.engineerId, eng.id));
+      const totalAccrued = allLeads.reduce((s, l) => s + l.leadCost, 0);
+      const totalPaid = allLeads.filter(l => l.paymentStatus === "paid").reduce((s, l) => s + l.leadCost, 0);
+      return {
+        engineerId: eng.id,
+        engineerName: user?.name ?? "—",
+        debtAmount: eng.debtAmount ?? 0,
+        totalAccrued,
+        totalPaid,
+        leadCount: allLeads.length,
+      };
+    }));
+    res.json(summary.filter(s => s.totalAccrued > 0));
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── PRO & Boost controls ──────────────────────────────────────────────────────
+
+router.get("/admin/engineers", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 20;
+    const offset = (pageNum - 1) * limit;
+
+    const engineers = await db.select().from(engineersTable)
+      .orderBy(sql`${engineersTable.createdAt} desc`)
+      .limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(engineersTable);
+
+    const now = new Date();
+    const activeBoosts = await db.select().from(profileBoostsTable).where(gte(profileBoostsTable.expiresAt, now));
+    const boostMap = new Map(activeBoosts.map(b => [b.engineerId, b]));
+
+    const items = await Promise.all(engineers.map(async (eng) => {
+      const [user] = await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1);
+      return {
+        id: eng.id,
+        userId: eng.userId,
+        name: user?.name ?? "—",
+        email: user?.email ?? "—",
+        region: eng.region,
+        rating: eng.rating,
+        isVerified: eng.isVerified,
+        isPro: eng.isPro,
+        proExpiresAt: eng.proExpiresAt ?? null,
+        debtAmount: eng.debtAmount ?? 0,
+        specializations: parseJson(eng.specializations) as string[],
+        activeBoost: boostMap.get(eng.id) ?? null,
+      };
+    }));
+
+    res.json({ items, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/admin/engineers/:engineerId", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.engineerId as string);
+    const { isPro, proExpiresAt, boostPeriod } = req.body;
+
+    const updates: Record<string, unknown> = {};
+    if (isPro !== undefined) updates.isPro = isPro;
+    if (proExpiresAt !== undefined) updates.proExpiresAt = proExpiresAt ? new Date(proExpiresAt) : null;
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(engineersTable).set(updates).where(eq(engineersTable.id, engineerId));
+    }
+
+    if (boostPeriod) {
+      const days = parseInt(boostPeriod);
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + days);
+      await db.insert(profileBoostsTable).values({ engineerId, period: days, expiresAt });
+    }
+
+    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, engineerId)).limit(1);
+    if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
+
+    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1);
+    const now = new Date();
+    const activeBoosts = await db.select().from(profileBoostsTable)
+      .where(and(eq(profileBoostsTable.engineerId, engineerId), gte(profileBoostsTable.expiresAt, now)));
+
+    res.json({
+      id: eng.id,
+      name: user?.name ?? "—",
+      isPro: eng.isPro,
+      proExpiresAt: eng.proExpiresAt ?? null,
+      debtAmount: eng.debtAmount ?? 0,
+      activeBoost: activeBoosts[activeBoosts.length - 1] ?? null,
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

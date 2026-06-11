@@ -79,7 +79,7 @@ router.post("/orders", requireAuth, async (req, res) => {
 
 router.get("/orders/:orderId", async (req, res) => {
   try {
-    const id = parseInt(req.params.orderId);
+    const id = parseInt(req.params.orderId as string);
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Order not found" }); return; }
     res.json(await formatOrder(order));
@@ -91,7 +91,7 @@ router.get("/orders/:orderId", async (req, res) => {
 
 router.patch("/orders/:orderId", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params.orderId);
+    const id = parseInt(req.params.orderId as string);
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Not found" }); return; }
     if (order.customerId !== req.user!.userId && req.user!.role !== "admin") {
@@ -115,7 +115,7 @@ router.patch("/orders/:orderId", requireAuth, async (req, res) => {
 // Complete an order and optionally submit a review in one step
 router.post("/orders/:orderId/complete", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params.orderId);
+    const id = parseInt(req.params.orderId as string);
     const { rating, comment, engineerId } = req.body;
 
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
@@ -162,7 +162,7 @@ router.post("/orders/:orderId/complete", requireAuth, async (req, res) => {
 
 router.delete("/orders/:orderId", requireAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params.orderId);
+    const id = parseInt(req.params.orderId as string);
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Not found" }); return; }
     if (order.customerId !== req.user!.userId && req.user!.role !== "admin") {

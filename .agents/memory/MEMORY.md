@@ -1,3 +1,5 @@
 - [Engineer schema extensions](engineer-schema.md) — portfolioItems/regions/isOnline/responseTime/priceFrom stored as JSON text columns.
 - [OpenAPI User schema](openapi-user.md) — must include isBlocked field or AdminPage.tsx gets TS2339 errors.
 - [Marketplace workflow patterns](marketplace-workflow.md) — bid acceptance, auto-chat, unread counts, order completion flow.
+- [Express 5 req.params types](express5-params.md) — req.params[key] is string|string[] in Express 5; cast as string at parseInt call sites.
+- [Lead billing architecture](lead-billing.md) — leads/debt/PRO/boost tables; DEBT_LIMIT=3000₽; lead created on bid accept.

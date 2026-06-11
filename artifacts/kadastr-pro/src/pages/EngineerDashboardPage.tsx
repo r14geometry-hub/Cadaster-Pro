@@ -9,7 +9,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import StarRating from "@/components/StarRating";
 import OrderCard from "@/components/OrderCard";
 import {
@@ -21,6 +20,7 @@ import {
   useVerifyEngineer,
   useListChats, getListChatsQueryKey,
   useCreateChatRoom,
+  useListAdminLeads, getListAdminLeadsQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,11 +29,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, ChevronRight,
+  ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, Sparkles, AlertTriangle, Wallet,
 } from "lucide-react";
 
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
 const SPECIALIZATIONS = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка"];
+
+const DEBT_LIMIT = 3000;
 
 const bidSchema = z.object({
   message: z.string().min(10, "Минимум 10 символов"),
@@ -50,6 +52,11 @@ const BID_STATUS: Record<string, { label: string; className: string }> = {
   pending:  { label: "Ожидает",   className: "bg-blue-50 text-blue-700 border-blue-200" },
   accepted: { label: "Принят",    className: "bg-green-50 text-green-700 border-green-200" },
   rejected: { label: "Отклонён",  className: "bg-gray-100 text-gray-500 border-gray-200" },
+};
+
+const LEAD_STATUS: Record<string, { label: string; className: string }> = {
+  unpaid: { label: "Не оплачен", className: "bg-red-50 text-red-700 border-red-200" },
+  paid:   { label: "Оплачен",   className: "bg-green-50 text-green-700 border-green-200" },
 };
 
 export default function EngineerDashboardPage() {
@@ -77,6 +84,18 @@ export default function EngineerDashboardPage() {
 
   const { data: chats } = useListChats({ query: { enabled: !!user, queryKey: getListChatsQueryKey() } });
   const totalUnread = chats?.reduce((s, c) => s + (c.unreadCount ?? 0), 0) ?? 0;
+
+  const { data: leadsData } = useListAdminLeads(
+    { engineerId: profile?.id },
+    { query: { enabled: !!profile, queryKey: getListAdminLeadsQueryKey({ engineerId: profile?.id }) } }
+  );
+
+  const leads = leadsData?.items ?? [];
+  const totalAccrued = leads.reduce((s, l) => s + l.leadCost, 0);
+  const totalPaid = leads.filter(l => l.paymentStatus === "paid").reduce((s, l) => s + l.leadCost, 0);
+  const currentDebt = profile?.debtAmount ?? 0;
+  const debtBlocked = currentDebt >= DEBT_LIMIT;
+  const debtWarning = currentDebt >= DEBT_LIMIT * 0.8;
 
   const bidForm = useForm({
     resolver: zodResolver(bidSchema),
@@ -144,8 +163,15 @@ export default function EngineerDashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-10">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-1" data-testid="heading-engineer-dashboard">Кабинет инженера</h1>
+      <div className="mb-6">
+        <div className="flex items-center gap-3 mb-1">
+          <h1 className="text-3xl font-bold text-foreground" data-testid="heading-engineer-dashboard">Кабинет инженера</h1>
+          {profile?.isPro && (
+            <span className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-300 rounded-full px-2.5 py-1">
+              <Sparkles className="w-3.5 h-3.5" /> PRO
+            </span>
+          )}
+        </div>
         <p className="text-muted-foreground">
           {profile?.isVerified ? (
             <span className="flex items-center gap-1.5 text-green-600">
@@ -156,6 +182,26 @@ export default function EngineerDashboardPage() {
           )}
         </p>
       </div>
+
+      {/* Debt warning banner */}
+      {debtBlocked && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-red-700">Подача откликов заблокирована</p>
+            <p className="text-sm text-red-600 mt-0.5">Погасите задолженность перед платформой для продолжения. Текущий долг: <strong>{currentDebt.toLocaleString("ru-RU")} ₽</strong></p>
+          </div>
+        </div>
+      )}
+      {!debtBlocked && debtWarning && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-amber-700">Задолженность приближается к лимиту</p>
+            <p className="text-sm text-amber-600 mt-0.5">Текущий долг: <strong>{currentDebt.toLocaleString("ru-RU")} ₽</strong> из {DEBT_LIMIT.toLocaleString("ru-RU")} ₽</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats row */}
       {profile && (
@@ -177,9 +223,17 @@ export default function EngineerDashboardPage() {
       )}
 
       <Tabs defaultValue="orders">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap h-auto gap-1">
           <TabsTrigger value="orders" data-testid="tab-available-orders">Заявки</TabsTrigger>
           <TabsTrigger value="bids" data-testid="tab-my-bids">Мои отклики</TabsTrigger>
+          <TabsTrigger value="balance" data-testid="tab-balance">
+            Баланс
+            {currentDebt > 0 && (
+              <span className="ml-1.5 bg-red-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[18px] text-center leading-tight">
+                {currentDebt.toLocaleString("ru-RU")}₽
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="profile" data-testid="tab-profile">Профиль</TabsTrigger>
           <TabsTrigger value="chats" data-testid="tab-chats" className="relative">
             Чаты
@@ -194,6 +248,11 @@ export default function EngineerDashboardPage() {
         {/* Available Orders */}
         <TabsContent value="orders">
           <h2 className="text-lg font-semibold mb-4">Доступные заявки</h2>
+          {debtBlocked && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 text-sm text-red-700">
+              Подача откликов заблокирована из-за задолженности. Погасите долг для продолжения.
+            </div>
+          )}
           {ordersLoading ? (
             <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-lg" />)}</div>
           ) : openOrders && openOrders.items.length > 0 ? (
@@ -229,29 +288,18 @@ export default function EngineerDashboardPage() {
                         <div className="grid sm:grid-cols-2 gap-3">
                           <div>
                             <label className="text-xs text-muted-foreground mb-1 block">Стоимость работ (₽)</label>
-                            <Input
-                              type="number"
-                              placeholder="15000"
-                              {...bidForm.register("price")}
-                              data-testid="input-bid-price"
-                            />
+                            <Input type="number" placeholder="15000" {...bidForm.register("price")} data-testid="input-bid-price" />
                           </div>
                           <div>
                             <label className="text-xs text-muted-foreground mb-1 block">Предложенный срок</label>
-                            <Input
-                              placeholder="например: 2 недели"
-                              {...bidForm.register("proposedDeadline")}
-                              data-testid="input-bid-deadline"
-                            />
+                            <Input placeholder="например: 2 недели" {...bidForm.register("proposedDeadline")} data-testid="input-bid-deadline" />
                           </div>
                         </div>
                         <div className="flex gap-2">
-                          <Button type="submit" size="sm" disabled={createBid.isPending} data-testid="button-submit-bid">
+                          <Button type="submit" size="sm" disabled={createBid.isPending || debtBlocked} data-testid="button-submit-bid">
                             {createBid.isPending ? "Отправляем..." : "Отправить отклик"}
                           </Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => { setBiddingOrderId(null); bidForm.reset(); }}>
-                            Отмена
-                          </Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => { setBiddingOrderId(null); bidForm.reset(); }}>Отмена</Button>
                         </div>
                       </form>
                     ) : (
@@ -259,6 +307,7 @@ export default function EngineerDashboardPage() {
                         size="sm"
                         variant="outline"
                         onClick={() => setBiddingOrderId(order.id)}
+                        disabled={debtBlocked}
                         data-testid={`button-bid-${order.id}`}
                       >
                         Откликнуться
@@ -325,6 +374,88 @@ export default function EngineerDashboardPage() {
             <div className="text-center py-16 text-muted-foreground">
               <CheckCircle2 className="w-12 h-12 mx-auto mb-4 opacity-30" />
               <p>Откликов пока нет</p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* Balance */}
+        <TabsContent value="balance">
+          <h2 className="text-lg font-semibold mb-4">Баланс и история лидов</h2>
+
+          {/* Balance summary cards */}
+          <div className="grid sm:grid-cols-3 gap-4 mb-6">
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Wallet className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold">{totalAccrued.toLocaleString("ru-RU")} ₽</p>
+                    <p className="text-xs text-muted-foreground">Всего начислено</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-bold">{totalPaid.toLocaleString("ru-RU")} ₽</p>
+                    <p className="text-xs text-muted-foreground">Оплачено</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card className={debtBlocked ? "border-red-300 bg-red-50" : debtWarning ? "border-amber-300 bg-amber-50" : ""}>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${debtBlocked ? "bg-red-100" : debtWarning ? "bg-amber-100" : "bg-gray-50"}`}>
+                    <AlertTriangle className={`w-5 h-5 ${debtBlocked ? "text-red-600" : debtWarning ? "text-amber-600" : "text-gray-400"}`} />
+                  </div>
+                  <div>
+                    <p className={`text-xl font-bold ${debtBlocked ? "text-red-700" : debtWarning ? "text-amber-700" : ""}`}>
+                      {currentDebt.toLocaleString("ru-RU")} ₽
+                    </p>
+                    <p className="text-xs text-muted-foreground">Текущий долг / {DEBT_LIMIT.toLocaleString("ru-RU")} ₽ лимит</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Lead history */}
+          {leads.length > 0 ? (
+            <Card>
+              <CardHeader><CardTitle className="text-base">История лидов</CardTitle></CardHeader>
+              <CardContent className="p-0">
+                <div className="divide-y">
+                  {leads.map((lead) => {
+                    const status = LEAD_STATUS[lead.paymentStatus] ?? LEAD_STATUS.unpaid;
+                    return (
+                      <div key={lead.id} className="px-5 py-3 flex items-center justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{lead.serviceType}</p>
+                          <p className="text-xs text-muted-foreground">Заявка #{lead.orderId} · {new Date(lead.createdAt).toLocaleDateString("ru-RU")}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-semibold text-sm">{lead.leadCost.toLocaleString("ru-RU")} ₽</span>
+                          <Badge variant="outline" className={`text-xs ${status.className}`}>{status.label}</Badge>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center py-16 text-muted-foreground">
+              <Wallet className="w-12 h-12 mx-auto mb-4 opacity-30" />
+              <p>Лидов пока нет</p>
+              <p className="text-sm mt-1">Они появятся, когда заказчик примет ваш отклик</p>
             </div>
           )}
         </TabsContent>

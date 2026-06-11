@@ -62,6 +62,14 @@ export interface PortfolioItem {
   area?: string | null;
 }
 
+export interface ProfileBoost {
+  id: number;
+  engineerId: number;
+  period: number;
+  expiresAt: string;
+  createdAt: string;
+}
+
 export interface Engineer {
   id: number;
   userId: number;
@@ -83,6 +91,10 @@ export interface Engineer {
   /** @nullable */
   priceFrom?: number | null;
   portfolioItems: PortfolioItem[];
+  isPro: boolean;
+  /** @nullable */
+  proExpiresAt?: string | null;
+  debtAmount: number;
   createdAt: string;
 }
 
@@ -274,6 +286,93 @@ export interface AdminUserUpdate {
   isBlocked?: boolean;
 }
 
+export interface LeadPrice {
+  id: number;
+  serviceType: string;
+  price: number;
+  updatedAt: string;
+}
+
+export type LeadPricesInputPricesItem = {
+  serviceType: string;
+  price: number;
+};
+
+export interface LeadPricesInput {
+  prices: LeadPricesInputPricesItem[];
+}
+
+export interface Lead {
+  id: number;
+  orderId: number;
+  engineerId: number;
+  engineerName?: string;
+  serviceType: string;
+  leadCost: number;
+  paymentStatus: string;
+  createdAt: string;
+}
+
+export interface LeadList {
+  items: Lead[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface EngineerDebtSummary {
+  engineerId: number;
+  engineerName: string;
+  debtAmount: number;
+  totalAccrued: number;
+  totalPaid: number;
+  leadCount: number;
+}
+
+export interface LeadUpdate {
+  paymentStatus: string;
+}
+
+export interface AdminEngineerItem {
+  id: number;
+  userId: number;
+  name: string;
+  email: string;
+  region: string;
+  rating: number;
+  isVerified: boolean;
+  isPro: boolean;
+  /** @nullable */
+  proExpiresAt?: string | null;
+  debtAmount: number;
+  specializations: string[];
+  activeBoost?: ProfileBoost;
+}
+
+export interface AdminEngineerList {
+  items: AdminEngineerItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminEngineerUpdate {
+  isPro?: boolean;
+  /** @nullable */
+  proExpiresAt?: string | null;
+  boostPeriod?: number;
+}
+
+export interface AdminEngineerResult {
+  id: number;
+  name: string;
+  isPro: boolean;
+  /** @nullable */
+  proExpiresAt?: string | null;
+  debtAmount: number;
+  activeBoost?: ProfileBoost;
+}
+
 export type ListEngineersParams = {
 region?: string;
 specialization?: string;
@@ -299,6 +398,16 @@ page?: number;
 
 export type ListAdminOrdersParams = {
 status?: string;
+page?: number;
+};
+
+export type ListAdminLeadsParams = {
+engineerId?: number;
+paymentStatus?: string;
+page?: number;
+};
+
+export type ListAdminEngineersParams = {
 page?: number;
 };
 

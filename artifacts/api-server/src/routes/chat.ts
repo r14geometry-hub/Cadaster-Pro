@@ -106,7 +106,7 @@ router.post("/chats", requireAuth, async (req, res) => {
 
 router.get("/chats/:roomId/messages", requireAuth, async (req, res) => {
   try {
-    const roomId = parseInt(req.params.roomId);
+    const roomId = parseInt(req.params.roomId as string);
     const msgs = await db.select().from(messagesTable)
       .where(eq(messagesTable.roomId, roomId))
       .orderBy(sql`${messagesTable.createdAt} asc`);
@@ -135,7 +135,7 @@ router.get("/chats/:roomId/messages", requireAuth, async (req, res) => {
 
 router.post("/chats/:roomId/messages", requireAuth, async (req, res) => {
   try {
-    const roomId = parseInt(req.params.roomId);
+    const roomId = parseInt(req.params.roomId as string);
     const { text } = req.body;
     if (!text) { res.status(400).json({ error: "Text required" }); return; }
 
@@ -163,7 +163,7 @@ router.post("/chats/:roomId/messages", requireAuth, async (req, res) => {
 // Mark all messages in a room as read
 router.post("/chats/:roomId/read", requireAuth, async (req, res) => {
   try {
-    const roomId = parseInt(req.params.roomId);
+    const roomId = parseInt(req.params.roomId as string);
     await db.update(messagesTable)
       .set({ isRead: true })
       .where(and(

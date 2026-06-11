@@ -1,9 +1,11 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, bidsTable, chatRoomsTable, leadsTable, leadPricesTable } from "@workspace/db";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
 const router = Router();
+
+const DEBT_LIMIT = 3000;
 
 function parseJson(s: string): unknown[] {
   try { return JSON.parse(s); } catch { return []; }
@@ -35,13 +37,16 @@ async function formatBid(bid: typeof bidsTable.$inferSelect) {
       bio: eng.bio ?? null,
       responseTime: eng.responseTime ?? null,
       priceFrom: eng.priceFrom ?? null,
+      isPro: eng.isPro ?? false,
+      proExpiresAt: eng.proExpiresAt ?? null,
+      debtAmount: eng.debtAmount ?? 0,
     },
   };
 }
 
 router.get("/orders/:orderId/bids", async (req, res) => {
   try {
-    const orderId = parseInt(req.params.orderId);
+    const orderId = parseInt(req.params.orderId as string);
     const bids = await db.select().from(bidsTable)
       .where(eq(bidsTable.orderId, orderId))
       .orderBy(sql`${bidsTable.createdAt} desc`);
@@ -54,13 +59,19 @@ router.get("/orders/:orderId/bids", async (req, res) => {
 
 router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
   try {
-    const orderId = parseInt(req.params.orderId);
+    const orderId = parseInt(req.params.orderId as string);
     const { message, price, proposedDeadline } = req.body;
     if (!message) { res.status(400).json({ error: "Message required" }); return; }
 
     const [eng] = await db.select().from(engineersTable)
       .where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(403).json({ error: "Only engineers can bid" }); return; }
+
+    // Debt enforcement
+    if ((eng.debtAmount ?? 0) >= DEBT_LIMIT) {
+      res.status(403).json({ error: "Погасите задолженность перед платформой для продолжения" });
+      return;
+    }
 
     // Check not already bid on this order
     const existing = await db.select().from(bidsTable)
@@ -89,8 +100,8 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
 
 router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
   try {
-    const bidId = parseInt(req.params.bidId);
-    const orderId = parseInt(req.params.orderId);
+    const bidId = parseInt(req.params.bidId as string);
+    const orderId = parseInt(req.params.orderId as string);
     const { status } = req.body;
     if (!status) { res.status(400).json({ error: "Status required" }); return; }
 
@@ -115,12 +126,9 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
           ne(bidsTable.id, bidId)
         ));
 
-      // Auto-create chat room linked to this order (get customer from order)
+      // Auto-create chat room linked to this order
       const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
-      const [eng] = await db.select().from(engineersTable)
-        .where(eq(engineersTable.id, updated.engineerId)).limit(1);
 
-      // Only create if room doesn't already exist for this order + engineer pair
       const existingRoom = await db.select().from(chatRoomsTable)
         .where(and(
           eq(chatRoomsTable.orderId, orderId),
@@ -135,6 +143,24 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
           lastMessageAt: null,
         });
       }
+
+      // Create lead record at configured price
+      const [priceRow] = await db.select().from(leadPricesTable)
+        .where(eq(leadPricesTable.serviceType, order.serviceType)).limit(1);
+      const leadCost = priceRow?.price ?? 500;
+
+      await db.insert(leadsTable).values({
+        orderId,
+        engineerId: updated.engineerId,
+        serviceType: order.serviceType,
+        leadCost,
+        paymentStatus: "unpaid",
+      });
+
+      // Update engineer debtAmount
+      await db.update(engineersTable)
+        .set({ debtAmount: sql`${engineersTable.debtAmount} + ${leadCost}` })
+        .where(eq(engineersTable.id, updated.engineerId));
     }
 
     res.json(await formatBid(updated));
@@ -146,7 +172,7 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
 
 router.get("/engineers/:engineerId/bids", async (req, res) => {
   try {
-    const engineerId = parseInt(req.params.engineerId);
+    const engineerId = parseInt(req.params.engineerId as string);
     const bids = await db.select().from(bidsTable)
       .where(eq(bidsTable.engineerId, engineerId))
       .orderBy(sql`${bidsTable.createdAt} desc`);

@@ -20,6 +20,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AdminEngineerList,
+  AdminEngineerResult,
+  AdminEngineerUpdate,
   AdminStats,
   AdminUserUpdate,
   AuthResult,
@@ -31,9 +34,17 @@ import type {
   CompleteOrderInput,
   CompleteOrderResult,
   Engineer,
+  EngineerDebtSummary,
   EngineerList,
   EngineerUpdate,
   HealthStatus,
+  Lead,
+  LeadList,
+  LeadPrice,
+  LeadPricesInput,
+  LeadUpdate,
+  ListAdminEngineersParams,
+  ListAdminLeadsParams,
   ListAdminOrdersParams,
   ListAdminUsersParams,
   ListEngineersParams,
@@ -2622,4 +2633,541 @@ export function useListAdminOrders<TData = Awaited<ReturnType<typeof listAdminOr
 
 
 
+
+export const getGetAdminLeadPricesUrl = () => {
+
+
+
+
+  return `/api/admin/lead-prices`
+}
+
+/**
+ * @summary Get configured lead prices per service type
+ */
+export const getAdminLeadPrices = async ( options?: RequestInit): Promise<LeadPrice[]> => {
+
+  return customFetch<LeadPrice[]>(getGetAdminLeadPricesUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminLeadPricesQueryKey = () => {
+    return [
+    `/api/admin/lead-prices`
+    ] as const;
+    }
+
+
+export const getGetAdminLeadPricesQueryOptions = <TData = Awaited<ReturnType<typeof getAdminLeadPrices>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminLeadPricesQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminLeadPrices>>> = ({ signal }) => getAdminLeadPrices({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadPrices>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminLeadPricesQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminLeadPrices>>>
+export type GetAdminLeadPricesQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get configured lead prices per service type
+ */
+
+export function useGetAdminLeadPrices<TData = Awaited<ReturnType<typeof getAdminLeadPrices>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadPrices>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminLeadPricesQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateAdminLeadPricesUrl = () => {
+
+
+
+
+  return `/api/admin/lead-prices`
+}
+
+/**
+ * @summary Upsert lead prices
+ */
+export const updateAdminLeadPrices = async (leadPricesInput: LeadPricesInput, options?: RequestInit): Promise<LeadPrice[]> => {
+
+  return customFetch<LeadPrice[]>(getUpdateAdminLeadPricesUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      leadPricesInput,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminLeadPricesMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminLeadPrices>>, TError,{data: BodyType<LeadPricesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminLeadPrices>>, TError,{data: BodyType<LeadPricesInput>}, TContext> => {
+
+const mutationKey = ['updateAdminLeadPrices'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminLeadPrices>>, {data: BodyType<LeadPricesInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  updateAdminLeadPrices(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminLeadPricesMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminLeadPrices>>>
+    export type UpdateAdminLeadPricesMutationBody = BodyType<LeadPricesInput>
+    export type UpdateAdminLeadPricesMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Upsert lead prices
+ */
+export const useUpdateAdminLeadPrices = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminLeadPrices>>, TError,{data: BodyType<LeadPricesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminLeadPrices>>,
+        TError,
+        {data: BodyType<LeadPricesInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminLeadPricesMutationOptions(options));
+    }
+
+export const getListAdminLeadsUrl = (params?: ListAdminLeadsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/leads?${stringifiedParams}` : `/api/admin/leads`
+}
+
+/**
+ * @summary List leads (admin)
+ */
+export const listAdminLeads = async (params?: ListAdminLeadsParams, options?: RequestInit): Promise<LeadList> => {
+
+  return customFetch<LeadList>(getListAdminLeadsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminLeadsQueryKey = (params?: ListAdminLeadsParams,) => {
+    return [
+    `/api/admin/leads`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminLeadsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminLeads>>, TError = ErrorType<unknown>>(params?: ListAdminLeadsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminLeads>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminLeadsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminLeads>>> = ({ signal }) => listAdminLeads(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminLeads>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminLeadsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminLeads>>>
+export type ListAdminLeadsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List leads (admin)
+ */
+
+export function useListAdminLeads<TData = Awaited<ReturnType<typeof listAdminLeads>>, TError = ErrorType<unknown>>(
+ params?: ListAdminLeadsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminLeads>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminLeadsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetAdminLeadsSummaryUrl = () => {
+
+
+
+
+  return `/api/admin/leads/summary`
+}
+
+/**
+ * @summary Per-engineer debt summary
+ */
+export const getAdminLeadsSummary = async ( options?: RequestInit): Promise<EngineerDebtSummary[]> => {
+
+  return customFetch<EngineerDebtSummary[]>(getGetAdminLeadsSummaryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetAdminLeadsSummaryQueryKey = () => {
+    return [
+    `/api/admin/leads/summary`
+    ] as const;
+    }
+
+
+export const getGetAdminLeadsSummaryQueryOptions = <TData = Awaited<ReturnType<typeof getAdminLeadsSummary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetAdminLeadsSummaryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getAdminLeadsSummary>>> = ({ signal }) => getAdminLeadsSummary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadsSummary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetAdminLeadsSummaryQueryResult = NonNullable<Awaited<ReturnType<typeof getAdminLeadsSummary>>>
+export type GetAdminLeadsSummaryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Per-engineer debt summary
+ */
+
+export function useGetAdminLeadsSummary<TData = Awaited<ReturnType<typeof getAdminLeadsSummary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getAdminLeadsSummary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetAdminLeadsSummaryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateAdminLeadUrl = (leadId: number,) => {
+
+
+
+
+  return `/api/admin/leads/${leadId}`
+}
+
+/**
+ * @summary Mark lead as paid / unpaid
+ */
+export const updateAdminLead = async (leadId: number,
+    leadUpdate: LeadUpdate, options?: RequestInit): Promise<Lead> => {
+
+  return customFetch<Lead>(getUpdateAdminLeadUrl(leadId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      leadUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminLeadMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminLead>>, TError,{leadId: number;data: BodyType<LeadUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminLead>>, TError,{leadId: number;data: BodyType<LeadUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminLead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminLead>>, {leadId: number;data: BodyType<LeadUpdate>}> = (props) => {
+          const {leadId,data} = props ?? {};
+
+          return  updateAdminLead(leadId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminLeadMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminLead>>>
+    export type UpdateAdminLeadMutationBody = BodyType<LeadUpdate>
+    export type UpdateAdminLeadMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Mark lead as paid / unpaid
+ */
+export const useUpdateAdminLead = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminLead>>, TError,{leadId: number;data: BodyType<LeadUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminLead>>,
+        TError,
+        {leadId: number;data: BodyType<LeadUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminLeadMutationOptions(options));
+    }
+
+export const getListAdminEngineersUrl = (params?: ListAdminEngineersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/engineers?${stringifiedParams}` : `/api/admin/engineers`
+}
+
+/**
+ * @summary List engineers with billing info (admin)
+ */
+export const listAdminEngineers = async (params?: ListAdminEngineersParams, options?: RequestInit): Promise<AdminEngineerList> => {
+
+  return customFetch<AdminEngineerList>(getListAdminEngineersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminEngineersQueryKey = (params?: ListAdminEngineersParams,) => {
+    return [
+    `/api/admin/engineers`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminEngineersQueryOptions = <TData = Awaited<ReturnType<typeof listAdminEngineers>>, TError = ErrorType<unknown>>(params?: ListAdminEngineersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminEngineers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminEngineersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminEngineers>>> = ({ signal }) => listAdminEngineers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminEngineers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminEngineersQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminEngineers>>>
+export type ListAdminEngineersQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List engineers with billing info (admin)
+ */
+
+export function useListAdminEngineers<TData = Awaited<ReturnType<typeof listAdminEngineers>>, TError = ErrorType<unknown>>(
+ params?: ListAdminEngineersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminEngineers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminEngineersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateAdminEngineerUrl = (engineerId: number,) => {
+
+
+
+
+  return `/api/admin/engineers/${engineerId}`
+}
+
+/**
+ * @summary Set PRO status or apply profile boost (admin)
+ */
+export const updateAdminEngineer = async (engineerId: number,
+    adminEngineerUpdate: AdminEngineerUpdate, options?: RequestInit): Promise<AdminEngineerResult> => {
+
+  return customFetch<AdminEngineerResult>(getUpdateAdminEngineerUrl(engineerId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminEngineerUpdate,)
+  }
+);}
+
+
+
+
+export const getUpdateAdminEngineerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEngineer>>, TError,{engineerId: number;data: BodyType<AdminEngineerUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateAdminEngineer>>, TError,{engineerId: number;data: BodyType<AdminEngineerUpdate>}, TContext> => {
+
+const mutationKey = ['updateAdminEngineer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateAdminEngineer>>, {engineerId: number;data: BodyType<AdminEngineerUpdate>}> = (props) => {
+          const {engineerId,data} = props ?? {};
+
+          return  updateAdminEngineer(engineerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateAdminEngineerMutationResult = NonNullable<Awaited<ReturnType<typeof updateAdminEngineer>>>
+    export type UpdateAdminEngineerMutationBody = BodyType<AdminEngineerUpdate>
+    export type UpdateAdminEngineerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Set PRO status or apply profile boost (admin)
+ */
+export const useUpdateAdminEngineer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateAdminEngineer>>, TError,{engineerId: number;data: BodyType<AdminEngineerUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateAdminEngineer>>,
+        TError,
+        {engineerId: number;data: BodyType<AdminEngineerUpdate>},
+        TContext
+      > => {
+      return useMutation(getUpdateAdminEngineerMutationOptions(options));
+    }
 

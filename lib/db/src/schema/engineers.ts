@@ -20,6 +20,9 @@ export const engineersTable = pgTable("engineers", {
   responseTime: varchar("response_time", { length: 100 }).default("в течение дня"),
   priceFrom: integer("price_from"),
   portfolioItems: text("portfolio_items").notNull().default("[]"),
+  isPro: boolean("is_pro").notNull().default(false),
+  proExpiresAt: timestamp("pro_expires_at"),
+  debtAmount: integer("debt_amount").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

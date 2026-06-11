@@ -29,5 +29,9 @@ export interface Engineer {
   /** @nullable */
   priceFrom?: number | null;
   portfolioItems: PortfolioItem[];
+  isPro: boolean;
+  /** @nullable */
+  proExpiresAt?: string | null;
+  debtAmount: number;
   createdAt: string;
 }

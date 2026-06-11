@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
@@ -12,6 +12,8 @@ function parseJson(s: string): unknown[] {
 async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
   const [user] = await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1);
   const { passwordHash: _, ...safeUser } = user;
+  const now = new Date();
+  const activePro = eng.isPro && (!eng.proExpiresAt || eng.proExpiresAt > now);
   return {
     ...eng,
     user: { ...safeUser, phone: safeUser.phone ?? null, avatarUrl: safeUser.avatarUrl ?? null },
@@ -22,6 +24,9 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     responseTime: eng.responseTime ?? "в течение дня",
     priceFrom: eng.priceFrom ?? null,
     isOnline: eng.isOnline ?? false,
+    isPro: activePro,
+    proExpiresAt: eng.proExpiresAt ?? null,
+    debtAmount: eng.debtAmount ?? 0,
   };
 }
 
@@ -39,7 +44,7 @@ router.get("/engineers", async (req, res) => {
     let query = db.select().from(engineersTable).$dynamic();
     if (conditions.length > 0) query = query.where(and(...conditions));
 
-    const allResults = await query.orderBy(sql`${engineersTable.rating} desc`).limit(200);
+    const allResults = await query.limit(200);
     let formatted = await Promise.all(allResults.map(formatEngineer));
 
     if (search) {
@@ -53,6 +58,29 @@ router.get("/engineers", async (req, res) => {
     if (specialization) {
       formatted = formatted.filter(e => e.specializations.includes(specialization));
     }
+
+    const now = new Date();
+
+    // Fetch active boosts for all engineers
+    const activeBoosts = await db.select().from(profileBoostsTable)
+      .where(gte(profileBoostsTable.expiresAt, now));
+    const boostedEngIds = new Set(activeBoosts.map(b => b.engineerId));
+
+    const DEBT_LIMIT = 3000;
+
+    // Sort: PRO first, then boosted, then by rating; debt-restricted last
+    formatted.sort((a, b) => {
+      const aDebtBlock = a.debtAmount >= DEBT_LIMIT;
+      const bDebtBlock = b.debtAmount >= DEBT_LIMIT;
+      if (aDebtBlock !== bDebtBlock) return aDebtBlock ? 1 : -1;
+      const aPro = a.isPro;
+      const bPro = b.isPro;
+      if (aPro !== bPro) return aPro ? -1 : 1;
+      const aBoosted = boostedEngIds.has(a.id);
+      const bBoosted = boostedEngIds.has(b.id);
+      if (aBoosted !== bBoosted) return aBoosted ? -1 : 1;
+      return b.rating - a.rating;
+    });
 
     const total = formatted.length;
     const items = formatted.slice(offset, offset + limitNum);

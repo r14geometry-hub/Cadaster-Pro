@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import StarRating from "./StarRating";
-import { ShieldCheck, MapPin, Briefcase, MessageSquare, Clock, Banknote, Award } from "lucide-react";
+import { ShieldCheck, MapPin, Briefcase, MessageSquare, Clock, Award, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCreateChatRoom, getListChatsQueryKey, type Engineer } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,14 +38,23 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
   };
 
   const specs = engineer.specializations as string[];
-  const regions = (engineer as unknown as { regions?: string[] }).regions ?? [engineer.region];
 
   return (
     <Card
-      className="group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border border-border/60 overflow-hidden"
+      className={`group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 border overflow-hidden ${
+        engineer.isPro ? "border-amber-300 ring-1 ring-amber-200" : "border-border/60"
+      }`}
       data-testid={`card-engineer-${engineer.id}`}
     >
       <CardContent className="p-0">
+        {/* PRO banner */}
+        {engineer.isPro && (
+          <div className="bg-gradient-to-r from-amber-400 to-amber-500 px-4 py-1 flex items-center gap-1.5">
+            <Sparkles className="w-3 h-3 text-white" />
+            <span className="text-xs font-bold text-white uppercase tracking-wide">PRO</span>
+          </div>
+        )}
+
         {/* Top section */}
         <div className="p-5 pb-4">
           <div className="flex items-start gap-4">
@@ -73,6 +82,11 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
               </div>
 
               <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                {engineer.isPro && (
+                  <div className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5" data-testid={`badge-pro-${engineer.id}`}>
+                    <Sparkles className="w-3 h-3" /> PRO
+                  </div>
+                )}
                 {engineer.isVerified && (
                   <div className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5" data-testid={`badge-verified-${engineer.id}`}>
                     <ShieldCheck className="w-3 h-3" /> Росреестр

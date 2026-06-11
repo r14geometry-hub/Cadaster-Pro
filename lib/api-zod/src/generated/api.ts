@@ -121,6 +121,9 @@ export const ListEngineersResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 })),
   "total": zod.number(),
@@ -166,6 +169,9 @@ export const ListTopEngineersResponseItem = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 })
 export const ListTopEngineersResponse = zod.array(ListTopEngineersResponseItem)
@@ -208,6 +214,9 @@ export const GetMyEngineerProfileResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 })
 
@@ -269,6 +278,9 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 })
 
@@ -328,6 +340,9 @@ export const GetEngineerResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 })
 
@@ -628,6 +643,9 @@ export const ListOrderBidsResponseItem = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -726,6 +744,9 @@ export const UpdateBidResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -804,6 +825,9 @@ export const ListEngineerBidsResponseItem = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 }),
   "message": zod.string(),
@@ -930,6 +954,9 @@ export const ListChatsResponseItem = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 }),
   "lastMessage": zod.string().nullish(),
@@ -1020,6 +1047,9 @@ export const CreateChatRoomResponse = zod.object({
   "year": zod.number(),
   "area": zod.string().nullish()
 })),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
   "createdAt": zod.string()
 }),
   "lastMessage": zod.string().nullish(),
@@ -1192,6 +1222,163 @@ export const ListAdminOrdersResponse = zod.object({
   "total": zod.number(),
   "page": zod.number(),
   "limit": zod.number()
+})
+
+
+/**
+ * @summary Get configured lead prices per service type
+ */
+export const GetAdminLeadPricesResponseItem = zod.object({
+  "id": zod.number(),
+  "serviceType": zod.string(),
+  "price": zod.number(),
+  "updatedAt": zod.string()
+})
+export const GetAdminLeadPricesResponse = zod.array(GetAdminLeadPricesResponseItem)
+
+
+/**
+ * @summary Upsert lead prices
+ */
+export const UpdateAdminLeadPricesBody = zod.object({
+  "prices": zod.array(zod.object({
+  "serviceType": zod.string(),
+  "price": zod.number()
+}))
+})
+
+export const UpdateAdminLeadPricesResponseItem = zod.object({
+  "id": zod.number(),
+  "serviceType": zod.string(),
+  "price": zod.number(),
+  "updatedAt": zod.string()
+})
+export const UpdateAdminLeadPricesResponse = zod.array(UpdateAdminLeadPricesResponseItem)
+
+
+/**
+ * @summary List leads (admin)
+ */
+export const ListAdminLeadsQueryParams = zod.object({
+  "engineerId": zod.coerce.number().optional(),
+  "paymentStatus": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminLeadsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "engineerId": zod.number(),
+  "engineerName": zod.string().optional(),
+  "serviceType": zod.string(),
+  "leadCost": zod.number(),
+  "paymentStatus": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Per-engineer debt summary
+ */
+export const GetAdminLeadsSummaryResponseItem = zod.object({
+  "engineerId": zod.number(),
+  "engineerName": zod.string(),
+  "debtAmount": zod.number(),
+  "totalAccrued": zod.number(),
+  "totalPaid": zod.number(),
+  "leadCount": zod.number()
+})
+export const GetAdminLeadsSummaryResponse = zod.array(GetAdminLeadsSummaryResponseItem)
+
+
+/**
+ * @summary Mark lead as paid / unpaid
+ */
+export const UpdateAdminLeadParams = zod.object({
+  "leadId": zod.coerce.number()
+})
+
+export const UpdateAdminLeadBody = zod.object({
+  "paymentStatus": zod.string()
+})
+
+export const UpdateAdminLeadResponse = zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "engineerId": zod.number(),
+  "engineerName": zod.string().optional(),
+  "serviceType": zod.string(),
+  "leadCost": zod.number(),
+  "paymentStatus": zod.string(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary List engineers with billing info (admin)
+ */
+export const ListAdminEngineersQueryParams = zod.object({
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminEngineersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "userId": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "region": zod.string(),
+  "rating": zod.number(),
+  "isVerified": zod.boolean(),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
+  "specializations": zod.array(zod.string()),
+  "activeBoost": zod.object({
+  "id": zod.number(),
+  "engineerId": zod.number(),
+  "period": zod.number(),
+  "expiresAt": zod.string(),
+  "createdAt": zod.string()
+}).optional()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Set PRO status or apply profile boost (admin)
+ */
+export const UpdateAdminEngineerParams = zod.object({
+  "engineerId": zod.coerce.number()
+})
+
+export const UpdateAdminEngineerBody = zod.object({
+  "isPro": zod.boolean().optional(),
+  "proExpiresAt": zod.string().nullish(),
+  "boostPeriod": zod.number().optional()
+})
+
+export const UpdateAdminEngineerResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "isPro": zod.boolean(),
+  "proExpiresAt": zod.string().nullish(),
+  "debtAmount": zod.number(),
+  "activeBoost": zod.object({
+  "id": zod.number(),
+  "engineerId": zod.number(),
+  "period": zod.number(),
+  "expiresAt": zod.string(),
+  "createdAt": zod.string()
+}).optional()
 })
 
 

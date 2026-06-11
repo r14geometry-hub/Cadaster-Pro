@@ -696,6 +696,149 @@ paths:
               schema:
                 $ref: "#/components/schemas/OrderList"
 
+  /admin/lead-prices:
+    get:
+      operationId: getAdminLeadPrices
+      tags: [admin]
+      summary: Get configured lead prices per service type
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeadPrice"
+    put:
+      operationId: updateAdminLeadPrices
+      tags: [admin]
+      summary: Upsert lead prices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadPricesInput"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LeadPrice"
+
+  /admin/leads:
+    get:
+      operationId: listAdminLeads
+      tags: [admin]
+      summary: List leads (admin)
+      parameters:
+        - name: engineerId
+          in: query
+          schema:
+            type: integer
+        - name: paymentStatus
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadList"
+
+  /admin/leads/summary:
+    get:
+      operationId: getAdminLeadsSummary
+      tags: [admin]
+      summary: Per-engineer debt summary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EngineerDebtSummary"
+
+  /admin/leads/{leadId}:
+    patch:
+      operationId: updateAdminLead
+      tags: [admin]
+      summary: Mark lead as paid / unpaid
+      parameters:
+        - name: leadId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LeadUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Lead"
+
+  /admin/engineers:
+    get:
+      operationId: listAdminEngineers
+      tags: [admin]
+      summary: List engineers with billing info (admin)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminEngineerList"
+
+  /admin/engineers/{engineerId}:
+    patch:
+      operationId: updateAdminEngineer
+      tags: [admin]
+      summary: Set PRO status or apply profile boost (admin)
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminEngineerUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminEngineerResult"
+
 components:
   schemas:
     HealthStatus:
@@ -798,6 +941,21 @@ components:
           type: ["string", "null"]
       required: [title, description, type, region, year]
 
+    ProfileBoost:
+      type: object
+      properties:
+        id:
+          type: integer
+        engineerId:
+          type: integer
+        period:
+          type: integer
+        expiresAt:
+          type: string
+        createdAt:
+          type: string
+      required: [id, engineerId, period, expiresAt, createdAt]
+
     Engineer:
       type: object
       properties:
@@ -841,9 +999,15 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PortfolioItem"
+        isPro:
+          type: boolean
+        proExpiresAt:
+          type: ["string", "null"]
+        debtAmount:
+          type: integer
         createdAt:
           type: string
-      required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, rating, reviewCount, completedOrders, portfolioItems, createdAt]
+      required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, rating, reviewCount, completedOrders, portfolioItems, isPro, debtAmount, createdAt]
 
     EngineerList:
       type: object
@@ -1187,3 +1351,164 @@ components:
           type: string
         isBlocked:
           type: boolean
+
+    LeadPrice:
+      type: object
+      properties:
+        id:
+          type: integer
+        serviceType:
+          type: string
+        price:
+          type: integer
+        updatedAt:
+          type: string
+      required: [id, serviceType, price, updatedAt]
+
+    LeadPricesInput:
+      type: object
+      properties:
+        prices:
+          type: array
+          items:
+            type: object
+            properties:
+              serviceType:
+                type: string
+              price:
+                type: integer
+            required: [serviceType, price]
+      required: [prices]
+
+    Lead:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        engineerId:
+          type: integer
+        engineerName:
+          type: string
+        serviceType:
+          type: string
+        leadCost:
+          type: integer
+        paymentStatus:
+          type: string
+        createdAt:
+          type: string
+      required: [id, orderId, engineerId, serviceType, leadCost, paymentStatus, createdAt]
+
+    LeadList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Lead"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    EngineerDebtSummary:
+      type: object
+      properties:
+        engineerId:
+          type: integer
+        engineerName:
+          type: string
+        debtAmount:
+          type: integer
+        totalAccrued:
+          type: integer
+        totalPaid:
+          type: integer
+        leadCount:
+          type: integer
+      required: [engineerId, engineerName, debtAmount, totalAccrued, totalPaid, leadCount]
+
+    LeadUpdate:
+      type: object
+      properties:
+        paymentStatus:
+          type: string
+      required: [paymentStatus]
+
+    AdminEngineerItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        email:
+          type: string
+        region:
+          type: string
+        rating:
+          type: number
+        isVerified:
+          type: boolean
+        isPro:
+          type: boolean
+        proExpiresAt:
+          type: ["string", "null"]
+        debtAmount:
+          type: integer
+        specializations:
+          type: array
+          items:
+            type: string
+        activeBoost:
+          $ref: "#/components/schemas/ProfileBoost"
+      required: [id, userId, name, email, region, rating, isVerified, isPro, debtAmount, specializations]
+
+    AdminEngineerList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminEngineerItem"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    AdminEngineerUpdate:
+      type: object
+      properties:
+        isPro:
+          type: boolean
+        proExpiresAt:
+          type: ["string", "null"]
+        boostPeriod:
+          type: integer
+
+    AdminEngineerResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        isPro:
+          type: boolean
+        proExpiresAt:
+          type: ["string", "null"]
+        debtAmount:
+          type: integer
+        activeBoost:
+          $ref: "#/components/schemas/ProfileBoost"
+      required: [id, name, isPro, debtAmount]
