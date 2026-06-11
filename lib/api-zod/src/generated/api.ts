@@ -9,19 +9,26 @@ import * as zod from 'zod';
 
 
 /**
- * @summary ФИАС address autocomplete suggestions
+ * @summary ФИАС/ГАР address autocomplete suggestions
  */
 export const SuggestAddressQueryParams = zod.object({
   "query": zod.coerce.string(),
-  "level": zod.enum(['district', 'locality', 'address']).optional(),
-  "region": zod.coerce.string().optional()
+  "level": zod.enum(['region', 'district', 'locality', 'territory', 'street', 'house', 'address']).optional(),
+  "region": zod.coerce.string().optional(),
+  "district": zod.coerce.string().optional(),
+  "parentId": zod.coerce.string().optional().describe('ФИАС GUID of parent object for hierarchical narrowing')
 })
 
 export const SuggestAddressResponseItem = zod.object({
-  "value": zod.string(),
+  "label": zod.string().describe('Short human-readable name for this object'),
+  "value": zod.string().describe('Value to store\/display when selected'),
+  "fiasId": zod.string().nullish().describe('ФИАС\/ГАР GUID (null for mock data)'),
+  "level": zod.enum(['region', 'district', 'locality', 'territory', 'street', 'house', 'address']),
+  "type": zod.string().nullish().describe('Object type label (город, район, улица, etc.)'),
+  "region": zod.string().nullish(),
   "district": zod.string().nullish(),
   "locality": zod.string().nullish(),
-  "region": zod.string().nullish()
+  "fullAddress": zod.string().describe('Full address string for display')
 })
 export const SuggestAddressResponse = zod.array(SuggestAddressResponseItem)
 

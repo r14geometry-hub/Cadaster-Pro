@@ -1,23 +1,33 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, AlertCircle } from "lucide-react";
 
-interface Suggestion {
+export interface AddressSuggestion {
+  label: string;
   value: string;
+  fiasId?: string | null;
+  level: string;
+  type?: string | null;
+  region?: string | null;
   district?: string | null;
   locality?: string | null;
-  region?: string | null;
+  fullAddress: string;
 }
+
+export type AddressLevel = "region" | "district" | "locality" | "territory" | "street" | "house" | "address";
 
 interface AddressAutocompleteProps {
   value: string;
-  onChange: (value: string, suggestion?: Suggestion) => void;
-  level: "district" | "locality" | "address";
+  onChange: (value: string, suggestion?: AddressSuggestion) => void;
+  level: AddressLevel;
   region?: string;
+  district?: string;
+  parentId?: string;
   placeholder?: string;
   disabled?: boolean;
   freeText?: boolean;
+  className?: string;
   "data-testid"?: string;
 }
 
@@ -26,15 +36,19 @@ export default function AddressAutocomplete({
   onChange,
   level,
   region,
+  district,
+  parentId,
   placeholder,
   disabled,
   freeText = false,
+  className,
   "data-testid": testId,
 }: AddressAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value);
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [serviceError, setServiceError] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -44,15 +58,34 @@ export default function AddressAutocomplete({
     setInputValue(value);
   }, [value]);
 
+  // Reset suggestions when context changes
+  useEffect(() => {
+    setSuggestions([]);
+    setIsOpen(false);
+  }, [region, district]);
+
   const fetchSuggestions = useCallback(async (q: string) => {
     if (q.length < 2) { setSuggestions([]); setIsOpen(false); return; }
     setIsLoading(true);
+    setServiceError(null);
     try {
       const params = new URLSearchParams({ query: q, level });
       if (region) params.set("region", region);
+      if (district) params.set("district", district);
+      if (parentId) params.set("parentId", parentId);
+
       const resp = await fetch(`/api/address/suggest?${params}`);
+
+      if (resp.status === 503) {
+        const err = await resp.json() as { message?: string };
+        setServiceError(err.message ?? "Адресный сервис недоступен");
+        setSuggestions([]);
+        setIsOpen(false);
+        return;
+      }
+
       if (resp.ok) {
-        const data: Suggestion[] = await resp.json();
+        const data: AddressSuggestion[] = await resp.json();
         setSuggestions(data);
         setIsOpen(data.length > 0);
       }
@@ -61,7 +94,7 @@ export default function AddressAutocomplete({
     } finally {
       setIsLoading(false);
     }
-  }, [level, region]);
+  }, [level, region, district, parentId]);
 
   function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
     const v = e.target.value;
@@ -74,7 +107,7 @@ export default function AddressAutocomplete({
     timerRef.current = setTimeout(() => fetchSuggestions(v), 300);
   }
 
-  function handleSelect(s: Suggestion) {
+  function handleSelect(s: AddressSuggestion) {
     setInputValue(s.value);
     setSuggestions([]);
     setIsOpen(false);
@@ -98,12 +131,7 @@ export default function AddressAutocomplete({
   }
 
   function handleBlur() {
-    setTimeout(() => {
-      if (!freeText && !suggestions.some(s => s.value === inputValue)) {
-        // Only reset if not free text and no matching suggestion was selected
-      }
-      setIsOpen(false);
-    }, 150);
+    setTimeout(() => setIsOpen(false), 150);
   }
 
   useEffect(() => {
@@ -116,8 +144,23 @@ export default function AddressAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const sublabel = (s: AddressSuggestion): string | null => {
+    const parts: string[] = [];
+    if (s.type) parts.push(s.type);
+    if (level === "locality" || level === "territory") {
+      if (s.district) parts.push(s.district);
+      if (s.region) parts.push(s.region);
+    } else if (level === "street" || level === "address") {
+      if (s.locality) parts.push(s.locality);
+      if (s.region) parts.push(s.region);
+    } else if (level === "district") {
+      if (s.region) parts.push(s.region);
+    }
+    return parts.length > 0 ? parts.join(", ") : null;
+  };
+
   return (
-    <div ref={containerRef} className="relative">
+    <div ref={containerRef} className={cn("relative", className)}>
       <div className="relative">
         <Input
           ref={inputRef}
@@ -135,29 +178,35 @@ export default function AddressAutocomplete({
         )}
       </div>
 
+      {serviceError && (
+        <div className="mt-1 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>{serviceError}</span>
+        </div>
+      )}
+
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto">
-          {suggestions.map((s, i) => (
-            <button
-              key={i}
-              type="button"
-              className={cn(
-                "w-full flex items-start gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors",
-                i === activeSuggestion && "bg-accent"
-              )}
-              onMouseDown={() => handleSelect(s)}
-            >
-              <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
-              <div>
-                <span className="font-medium">{s.value}</span>
-                {(s.district || s.region) && level === "locality" && (
-                  <p className="text-xs text-muted-foreground">
-                    {[s.district, s.region].filter(Boolean).join(", ")}
-                  </p>
+        <div className="absolute z-50 w-full mt-1 bg-background border rounded-lg shadow-lg overflow-hidden max-h-64 overflow-y-auto">
+          {suggestions.map((s, i) => {
+            const sub = sublabel(s);
+            return (
+              <button
+                key={s.fiasId ?? i}
+                type="button"
+                className={cn(
+                  "w-full flex items-start gap-2 px-3 py-2 text-sm text-left hover:bg-accent transition-colors",
+                  i === activeSuggestion && "bg-accent"
                 )}
-              </div>
-            </button>
-          ))}
+                onMouseDown={() => handleSelect(s)}
+              >
+                <MapPin className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <span className="font-medium block truncate">{s.label}</span>
+                  {sub && <p className="text-xs text-muted-foreground truncate">{sub}</p>}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

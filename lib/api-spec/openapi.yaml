@@ -26,7 +26,7 @@ paths:
     get:
       operationId: suggestAddress
       tags: [address]
-      summary: ФИАС address autocomplete suggestions
+      summary: ФИАС/ГАР address autocomplete suggestions
       parameters:
         - name: query
           in: query
@@ -38,12 +38,23 @@ paths:
           required: false
           schema:
             type: string
-            enum: [district, locality, address]
+            enum: [region, district, locality, territory, street, house, address]
         - name: region
           in: query
           required: false
           schema:
             type: string
+        - name: district
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: parentId
+          in: query
+          required: false
+          schema:
+            type: string
+          description: ФИАС GUID of parent object for hierarchical narrowing
       responses:
         "200":
           description: List of suggestions
@@ -53,6 +64,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AddressSuggestion"
+        "503":
+          description: Address service not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddressServiceError"
 
   /healthz:
     get:
@@ -2162,18 +2179,45 @@ components:
     AddressSuggestion:
       type: object
       properties:
+        label:
+          type: string
+          description: Short human-readable name for this object
         value:
           type: string
+          description: Value to store/display when selected
+        fiasId:
+          type: string
+          nullable: true
+          description: ФИАС/ГАР GUID (null for mock data)
+        level:
+          type: string
+          enum: [region, district, locality, territory, street, house, address]
+        type:
+          type: string
+          nullable: true
+          description: Object type label (город, район, улица, etc.)
+        region:
+          type: string
+          nullable: true
         district:
           type: string
           nullable: true
         locality:
           type: string
           nullable: true
-        region:
+        fullAddress:
           type: string
-          nullable: true
-      required: [value]
+          description: Full address string for display
+      required: [label, value, level, fullAddress]
+
+    AddressServiceError:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error, message]
 
     PlatformSettings:
       type: object

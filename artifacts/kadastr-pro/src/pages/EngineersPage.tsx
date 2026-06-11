@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import EngineerCard from "@/components/EngineerCard";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 import { useListEngineers, getListEngineersQueryKey } from "@workspace/api-client-react";
 import { Search, Users, Filter, X, ShieldCheck } from "lucide-react";
 
@@ -155,11 +156,13 @@ export default function EngineersPage() {
               {/* District filter */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-2">Кадастровый округ</label>
-                <Input
-                  placeholder="Напр. Московский..."
+                <AddressAutocomplete
                   value={district}
-                  onChange={(e) => setDistrict(e.target.value)}
-                  className="text-sm"
+                  onChange={(v) => setDistrict(v)}
+                  level="district"
+                  region={region !== "all" ? region : undefined}
+                  placeholder="Напр. Московский..."
+                  freeText={false}
                   data-testid="input-district-filter"
                 />
               </div>

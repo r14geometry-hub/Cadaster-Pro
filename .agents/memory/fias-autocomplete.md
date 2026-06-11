@@ -5,37 +5,44 @@ description: How the address suggest endpoint works and how to add Dadata integr
 
 ## Endpoint
 
-`GET /api/address/suggest?query=...&level=district|locality|address&region=...`
+`GET /api/address/suggest?query=...&level=...&region=...&district=...&parentId=...`
 
-- Returns array of `{ value, district, locality, region }` suggestions
+Levels: `region | district | locality | territory | street | house | address`
+Returns: `{ label, value, fiasId, level, type, region, district, locality, fullAddress }`
+
 - `query` must be ≥ 2 characters
-- `level` controls granularity; `region` narrows results to one RF subject
+- `district` + `parentId` (FIAS GUID) narrow results hierarchically
+- Dadata bounds: region→region, district→area, locality/territory→city/settlement, street→street, house/address→street/house
 
-## Mock vs live
+## Production guard
 
-- If `DADATA_API_KEY` env var is set → proxies to Dadata suggestions API
-- Otherwise → returns from curated static dataset in `address.ts`
+- `NODE_ENV=production` + no `DADATA_API_KEY` → HTTP 503 with admin-facing error message
+- Dev without key → mock fallback + console warning
 
-Mock covers 13 major regions: Москва, Санкт-Петербург, Московская область, Краснодарский край, Татарстан, Свердловская, Новосибирская, Самарская, Ростовская, Нижегородская, Башкортостан, Челябинская, Иркутская.
+## Mock coverage
+
+Mock data covers 82 RF regions for `level=region` search (full list), with district/locality data for ~6 major regions.
 
 ## Frontend component
 
 `artifacts/kadastr-pro/src/components/AddressAutocomplete.tsx`
 
-Props:
-- `value / onChange` — controlled
-- `level` — "district" | "locality" | "address"
-- `region` — optional filter
-- `freeText` — if false, only allow selecting from suggestions; if true, allow free typing + suggestions
+Props: `value/onChange`, `level` (AddressLevel), `region?`, `district?`, `parentId?`, `freeText?`, `className?`
+Exports: `AddressSuggestion` interface, `AddressLevel` type
+
+- `freeText=false` — only allow selecting from suggestions (for district/locality/territory)
+- `freeText=true` — allow free typing with suggestions (for address fields)
+- 503 response shows amber warning banner inside the component
 
 Used in:
-- `CreateOrderPage` — district (freeText=false), locality (freeText=false), address (freeText=true)
-- `EngineerDashboardPage` territory editor — district/locality fields (freeText=false)
+- `CreateOrderPage` — district/locality (freeText=false), address (freeText=true)
+- `EngineerDashboardPage` — territory district/locality (freeText=false)
+- `EngineersPage` — district catalog filter (freeText=false, region-narrowed)
 
-**Why:** PRD §3 requires prohibiting free-form entry of region/district/locality. freeText=false enforces selection from autocomplete results.
+**Why:** PRD §3 requires prohibiting free-form entry of region/district/locality/territory/address.
 
-**How to apply:** Always pass `freeText={false}` for district/locality fields. For address fields (can contain cadastral numbers), use `freeText={true}`.
+**How to apply:** Pass `freeText={false}` for all geographic hierarchy fields. For free-text address/house fields use `freeText={true}`. Always pass `region` when level=district; pass `district` when level=locality.
 
 ## Adding real Dadata
 
-Set `DADATA_API_KEY` in environment secrets. The endpoint auto-switches from mock to live. Dadata's free tier provides 10,000 requests/day.
+Set `DADATA_API_KEY` in environment secrets. Also set `DADATA_SECRET_KEY` if needed for clean API (not required for suggestions). Dadata free tier: 10,000 requests/day.

@@ -497,11 +497,39 @@ export interface RegionUpdate {
   percentFee?: number;
 }
 
+export type AddressSuggestionLevel = typeof AddressSuggestionLevel[keyof typeof AddressSuggestionLevel];
+
+
+export const AddressSuggestionLevel = {
+  region: 'region',
+  district: 'district',
+  locality: 'locality',
+  territory: 'territory',
+  street: 'street',
+  house: 'house',
+  address: 'address',
+} as const;
+
 export interface AddressSuggestion {
+  /** Short human-readable name for this object */
+  label: string;
+  /** Value to store/display when selected */
   value: string;
+  /** ФИАС/ГАР GUID (null for mock data) */
+  fiasId?: string | null;
+  level: AddressSuggestionLevel;
+  /** Object type label (город, район, улица, etc.) */
+  type?: string | null;
+  region?: string | null;
   district?: string | null;
   locality?: string | null;
-  region?: string | null;
+  /** Full address string for display */
+  fullAddress: string;
+}
+
+export interface AddressServiceError {
+  error: string;
+  message: string;
 }
 
 /**
@@ -700,14 +728,23 @@ export type SuggestAddressParams = {
 query: string;
 level?: SuggestAddressLevel;
 region?: string;
+district?: string;
+/**
+ * ФИАС GUID of parent object for hierarchical narrowing
+ */
+parentId?: string;
 };
 
 export type SuggestAddressLevel = typeof SuggestAddressLevel[keyof typeof SuggestAddressLevel];
 
 
 export const SuggestAddressLevel = {
+  region: 'region',
   district: 'district',
   locality: 'locality',
+  territory: 'territory',
+  street: 'street',
+  house: 'house',
   address: 'address',
 } as const;
 

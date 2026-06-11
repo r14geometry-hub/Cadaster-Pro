@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddressServiceError,
   AddressSuggestion,
   AdminEngineerList,
   AdminEngineerResult,
@@ -127,7 +128,7 @@ export const getSuggestAddressUrl = (params: SuggestAddressParams,) => {
 }
 
 /**
- * @summary ФИАС address autocomplete suggestions
+ * @summary ФИАС/ГАР address autocomplete suggestions
  */
 export const suggestAddress = async (params: SuggestAddressParams, options?: RequestInit): Promise<AddressSuggestion[]> => {
 
@@ -151,7 +152,7 @@ export const getSuggestAddressQueryKey = (params?: SuggestAddressParams,) => {
     }
 
 
-export const getSuggestAddressQueryOptions = <TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<unknown>>(params: SuggestAddressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getSuggestAddressQueryOptions = <TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<AddressServiceError>>(params: SuggestAddressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
@@ -170,14 +171,14 @@ const {query: queryOptions, request: requestOptions} = options ?? {};
 }
 
 export type SuggestAddressQueryResult = NonNullable<Awaited<ReturnType<typeof suggestAddress>>>
-export type SuggestAddressQueryError = ErrorType<unknown>
+export type SuggestAddressQueryError = ErrorType<AddressServiceError>
 
 
 /**
- * @summary ФИАС address autocomplete suggestions
+ * @summary ФИАС/ГАР address autocomplete suggestions
  */
 
-export function useSuggestAddress<TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<unknown>>(
+export function useSuggestAddress<TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<AddressServiceError>>(
  params: SuggestAddressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
