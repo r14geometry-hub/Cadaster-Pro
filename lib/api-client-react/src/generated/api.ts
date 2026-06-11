@@ -31,6 +31,9 @@ import type {
   BidUpdate,
   ChatRoom,
   ChatRoomInput,
+  Complaint,
+  ComplaintInput,
+  ComplaintList,
   CompleteOrderInput,
   CompleteOrderResult,
   Engineer,
@@ -38,6 +41,7 @@ import type {
   EngineerDebtSummary,
   EngineerList,
   EngineerUpdate,
+  FileUploadResult,
   GetMyLeadsParams,
   HealthStatus,
   Lead,
@@ -45,6 +49,7 @@ import type {
   LeadPrice,
   LeadPricesInput,
   LeadUpdate,
+  ListAdminComplaintsParams,
   ListAdminEngineersParams,
   ListAdminLeadsParams,
   ListAdminOrdersParams,
@@ -67,6 +72,9 @@ import type {
   Review,
   ReviewInput,
   StatsSummary,
+  UploadChatFileBody,
+  UploadUrlRequest,
+  UploadUrlResponse,
   User,
   UserList,
   VerificationLogList,
@@ -2407,6 +2415,454 @@ export const useSendMessage = <TError = ErrorType<unknown>,
       > => {
       return useMutation(getSendMessageMutationOptions(options));
     }
+
+export const getUploadChatFileUrl = (roomId: number,) => {
+
+
+
+
+  return `/api/chats/${roomId}/upload`
+}
+
+/**
+ * @summary Upload a file attachment for a chat room
+ */
+export const uploadChatFile = async (roomId: number,
+    uploadChatFileBody: UploadChatFileBody, options?: RequestInit): Promise<FileUploadResult> => {
+    const formData = new FormData();
+formData.append(`file`, uploadChatFileBody.file);
+
+  return customFetch<FileUploadResult>(getUploadChatFileUrl(roomId),
+  {
+    ...options,
+    method: 'POST'
+    ,
+    body:
+      formData,
+  }
+);}
+
+
+
+
+export const getUploadChatFileMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatFile>>, TError,{roomId: number;data: BodyType<UploadChatFileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof uploadChatFile>>, TError,{roomId: number;data: BodyType<UploadChatFileBody>}, TContext> => {
+
+const mutationKey = ['uploadChatFile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadChatFile>>, {roomId: number;data: BodyType<UploadChatFileBody>}> = (props) => {
+          const {roomId,data} = props ?? {};
+
+          return  uploadChatFile(roomId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UploadChatFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadChatFile>>>
+    export type UploadChatFileMutationBody = BodyType<UploadChatFileBody>
+    export type UploadChatFileMutationError = ErrorType<void>
+
+    /**
+ * @summary Upload a file attachment for a chat room
+ */
+export const useUploadChatFile = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof uploadChatFile>>, TError,{roomId: number;data: BodyType<UploadChatFileBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof uploadChatFile>>,
+        TError,
+        {roomId: number;data: BodyType<UploadChatFileBody>},
+        TContext
+      > => {
+      return useMutation(getUploadChatFileMutationOptions(options));
+    }
+
+export const getCreateComplaintUrl = (roomId: number,) => {
+
+
+
+
+  return `/api/chats/${roomId}/complaint`
+}
+
+/**
+ * @summary Submit a complaint about a chat room
+ */
+export const createComplaint = async (roomId: number,
+    complaintInput: ComplaintInput, options?: RequestInit): Promise<Complaint> => {
+
+  return customFetch<Complaint>(getCreateComplaintUrl(roomId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      complaintInput,)
+  }
+);}
+
+
+
+
+export const getCreateComplaintMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createComplaint>>, TError,{roomId: number;data: BodyType<ComplaintInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createComplaint>>, TError,{roomId: number;data: BodyType<ComplaintInput>}, TContext> => {
+
+const mutationKey = ['createComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createComplaint>>, {roomId: number;data: BodyType<ComplaintInput>}> = (props) => {
+          const {roomId,data} = props ?? {};
+
+          return  createComplaint(roomId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof createComplaint>>>
+    export type CreateComplaintMutationBody = BodyType<ComplaintInput>
+    export type CreateComplaintMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Submit a complaint about a chat room
+ */
+export const useCreateComplaint = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createComplaint>>, TError,{roomId: number;data: BodyType<ComplaintInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createComplaint>>,
+        TError,
+        {roomId: number;data: BodyType<ComplaintInput>},
+        TContext
+      > => {
+      return useMutation(getCreateComplaintMutationOptions(options));
+    }
+
+export const getListAdminComplaintsUrl = (params?: ListAdminComplaintsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/complaints?${stringifiedParams}` : `/api/admin/complaints`
+}
+
+/**
+ * @summary List all complaints (admin)
+ */
+export const listAdminComplaints = async (params?: ListAdminComplaintsParams, options?: RequestInit): Promise<ComplaintList> => {
+
+  return customFetch<ComplaintList>(getListAdminComplaintsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminComplaintsQueryKey = (params?: ListAdminComplaintsParams,) => {
+    return [
+    `/api/admin/complaints`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminComplaintsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminComplaints>>, TError = ErrorType<unknown>>(params?: ListAdminComplaintsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminComplaints>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminComplaintsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminComplaints>>> = ({ signal }) => listAdminComplaints(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminComplaints>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminComplaintsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminComplaints>>>
+export type ListAdminComplaintsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all complaints (admin)
+ */
+
+export function useListAdminComplaints<TData = Awaited<ReturnType<typeof listAdminComplaints>>, TError = ErrorType<unknown>>(
+ params?: ListAdminComplaintsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminComplaints>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminComplaintsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getResolveComplaintUrl = (complaintId: number,) => {
+
+
+
+
+  return `/api/admin/complaints/${complaintId}/resolve`
+}
+
+/**
+ * @summary Resolve a complaint (admin)
+ */
+export const resolveComplaint = async (complaintId: number, options?: RequestInit): Promise<Complaint> => {
+
+  return customFetch<Complaint>(getResolveComplaintUrl(complaintId),
+  {
+    ...options,
+    method: 'PATCH'
+
+
+  }
+);}
+
+
+
+
+export const getResolveComplaintMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveComplaint>>, TError,{complaintId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveComplaint>>, TError,{complaintId: number}, TContext> => {
+
+const mutationKey = ['resolveComplaint'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveComplaint>>, {complaintId: number}> = (props) => {
+          const {complaintId} = props ?? {};
+
+          return  resolveComplaint(complaintId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveComplaintMutationResult = NonNullable<Awaited<ReturnType<typeof resolveComplaint>>>
+
+    export type ResolveComplaintMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Resolve a complaint (admin)
+ */
+export const useResolveComplaint = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveComplaint>>, TError,{complaintId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveComplaint>>,
+        TError,
+        {complaintId: number},
+        TContext
+      > => {
+      return useMutation(getResolveComplaintMutationOptions(options));
+    }
+
+export const getRequestUploadUrlUrl = () => {
+
+
+
+
+  return `/api/storage/uploads/request-url`
+}
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const requestUploadUrl = async (uploadUrlRequest: UploadUrlRequest, options?: RequestInit): Promise<UploadUrlResponse> => {
+
+  return customFetch<UploadUrlResponse>(getRequestUploadUrlUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      uploadUrlRequest,)
+  }
+);}
+
+
+
+
+export const getRequestUploadUrlMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext> => {
+
+const mutationKey = ['requestUploadUrl'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof requestUploadUrl>>, {data: BodyType<UploadUrlRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  requestUploadUrl(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RequestUploadUrlMutationResult = NonNullable<Awaited<ReturnType<typeof requestUploadUrl>>>
+    export type RequestUploadUrlMutationBody = BodyType<UploadUrlRequest>
+    export type RequestUploadUrlMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Request a presigned URL for file upload
+ */
+export const useRequestUploadUrl = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof requestUploadUrl>>, TError,{data: BodyType<UploadUrlRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof requestUploadUrl>>,
+        TError,
+        {data: BodyType<UploadUrlRequest>},
+        TContext
+      > => {
+      return useMutation(getRequestUploadUrlMutationOptions(options));
+    }
+
+export const getGetStorageObjectUrl = (objectPath: string,) => {
+
+
+
+
+  return `/api/storage/objects/${objectPath}`
+}
+
+/**
+ * @summary Serve a stored object
+ */
+export const getStorageObject = async (objectPath: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getGetStorageObjectUrl(objectPath),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStorageObjectQueryKey = (objectPath: string,) => {
+    return [
+    `/api/storage/objects/${objectPath}`
+    ] as const;
+    }
+
+
+export const getGetStorageObjectQueryOptions = <TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<unknown>>(objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStorageObjectQueryKey(objectPath);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStorageObject>>> = ({ signal }) => getStorageObject(objectPath, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(objectPath), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStorageObjectQueryResult = NonNullable<Awaited<ReturnType<typeof getStorageObject>>>
+export type GetStorageObjectQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Serve a stored object
+ */
+
+export function useGetStorageObject<TData = Awaited<ReturnType<typeof getStorageObject>>, TError = ErrorType<unknown>>(
+ objectPath: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStorageObject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStorageObjectQueryOptions(objectPath,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetStatsSummaryUrl = () => {
 

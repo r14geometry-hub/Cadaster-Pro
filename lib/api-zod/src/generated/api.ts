@@ -44,6 +44,8 @@ export const LoginResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -69,6 +71,8 @@ export const GetMeResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -97,6 +101,8 @@ export const ListEngineersResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -153,6 +159,8 @@ export const ListTopEngineersResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -241,6 +249,8 @@ export const GetMyEngineerProfileResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -291,6 +301,8 @@ export const UpdateMyEngineerProfileBody = zod.object({
   "experience": zod.number().optional(),
   "bio": zod.string().optional(),
   "phone": zod.string().optional(),
+  "telegram": zod.string().optional(),
+  "whatsapp": zod.string().optional(),
   "responseTime": zod.string().optional(),
   "priceFrom": zod.number().optional(),
   "isOnline": zod.boolean().optional(),
@@ -313,6 +325,8 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -383,6 +397,8 @@ export const GetEngineerResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -445,6 +461,8 @@ export const ListOrdersResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -491,6 +509,8 @@ export const ListRecentOrdersResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -531,6 +551,8 @@ export const CompleteOrderResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -555,6 +577,8 @@ export const CompleteOrderResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -583,6 +607,8 @@ export const GetOrderResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -623,6 +649,8 @@ export const UpdateOrderResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -670,6 +698,8 @@ export const ListOrderBidsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -694,6 +724,8 @@ export const ListOrderBidsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -779,6 +811,8 @@ export const UpdateBidResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -803,6 +837,8 @@ export const UpdateBidResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -868,6 +904,8 @@ export const ListEngineerBidsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -892,6 +930,8 @@ export const ListEngineerBidsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -967,6 +1007,8 @@ export const ListEngineerReviewsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -994,6 +1036,8 @@ export const ListChatsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1015,6 +1059,8 @@ export const ListChatsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1029,6 +1075,8 @@ export const ListChatsResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1095,6 +1143,8 @@ export const CreateChatRoomResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1116,6 +1166,8 @@ export const CreateChatRoomResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1130,6 +1182,8 @@ export const CreateChatRoomResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1204,12 +1258,17 @@ export const ListMessagesResponseItem = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
 }),
   "text": zod.string(),
   "isRead": zod.boolean(),
+  "attachmentUrl": zod.string().nullish(),
+  "attachmentName": zod.string().nullish(),
+  "attachmentType": zod.string().nullish(),
   "createdAt": zod.string()
 })
 export const ListMessagesResponse = zod.array(ListMessagesResponseItem)
@@ -1223,7 +1282,113 @@ export const SendMessageParams = zod.object({
 })
 
 export const SendMessageBody = zod.object({
-  "text": zod.string()
+  "text": zod.string().optional(),
+  "attachmentUrl": zod.string().optional(),
+  "attachmentName": zod.string().optional(),
+  "attachmentType": zod.string().optional()
+})
+
+
+/**
+ * @summary Upload a file attachment for a chat room
+ */
+export const UploadChatFileParams = zod.object({
+  "roomId": zod.coerce.number()
+})
+
+export const UploadChatFileBody = zod.object({
+  "file": zod.string().describe('File to upload (PDF\/DOC\/DOCX\/XLS\/XLSX\/JPG\/PNG\/ZIP, max 20 MB)')
+})
+
+export const UploadChatFileResponse = zod.object({
+  "url": zod.string(),
+  "name": zod.string(),
+  "type": zod.string(),
+  "size": zod.number().optional()
+})
+
+
+/**
+ * @summary Submit a complaint about a chat room
+ */
+export const CreateComplaintParams = zod.object({
+  "roomId": zod.coerce.number()
+})
+
+export const CreateComplaintBody = zod.object({
+  "description": zod.string()
+})
+
+
+/**
+ * @summary List all complaints (admin)
+ */
+export const ListAdminComplaintsQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminComplaintsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "roomId": zod.number(),
+  "reporterId": zod.number(),
+  "reporterName": zod.string().nullish(),
+  "description": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Resolve a complaint (admin)
+ */
+export const ResolveComplaintParams = zod.object({
+  "complaintId": zod.coerce.number()
+})
+
+export const ResolveComplaintResponse = zod.object({
+  "id": zod.number(),
+  "roomId": zod.number(),
+  "reporterId": zod.number(),
+  "reporterName": zod.string().nullish(),
+  "description": zod.string(),
+  "status": zod.string(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary Request a presigned URL for file upload
+ */
+export const RequestUploadUrlBody = zod.object({
+  "name": zod.string(),
+  "size": zod.number(),
+  "contentType": zod.string()
+})
+
+export const RequestUploadUrlResponse = zod.object({
+  "uploadURL": zod.string(),
+  "objectPath": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().optional(),
+  "size": zod.number().optional(),
+  "contentType": zod.string().optional()
+}).optional()
+})
+
+
+/**
+ * @summary Serve a stored object
+ */
+export const GetStorageObjectParams = zod.object({
+  "objectPath": zod.coerce.string()
 })
 
 
@@ -1269,6 +1434,8 @@ export const ListAdminUsersResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1297,6 +1464,8 @@ export const UpdateAdminUserResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()
@@ -1321,6 +1490,8 @@ export const ListAdminOrdersResponse = zod.object({
   "email": zod.string(),
   "role": zod.string(),
   "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
   "avatarUrl": zod.string().nullish(),
   "isBlocked": zod.string().nullish(),
   "createdAt": zod.string()

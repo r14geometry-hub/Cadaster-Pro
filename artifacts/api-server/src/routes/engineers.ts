@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 
 const router = Router();
@@ -17,7 +17,13 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
   const activePro = eng.isPro && (!eng.proExpiresAt || eng.proExpiresAt > now);
   return {
     ...eng,
-    user: { ...safeUser, phone: safeUser.phone ?? null, avatarUrl: safeUser.avatarUrl ?? null },
+    user: {
+      ...safeUser,
+      phone: safeUser.phone ?? null,
+      telegram: safeUser.telegram ?? null,
+      whatsapp: safeUser.whatsapp ?? null,
+      avatarUrl: safeUser.avatarUrl ?? null,
+    },
     specializations: parseJson(eng.specializations) as string[],
     regions: parseJson(eng.regions) as string[],
     portfolioItems: parseJson(eng.portfolioItems),
@@ -197,7 +203,13 @@ router.put("/engineers/me", requireAuth, async (req, res) => {
     if (isOnline !== undefined) updates.isOnline = isOnline;
     if (portfolioItems !== undefined) updates.portfolioItems = JSON.stringify(portfolioItems);
     const [updated] = await db.update(engineersTable).set(updates).where(eq(engineersTable.id, eng.id)).returning();
-    if (phone !== undefined) await db.update(usersTable).set({ phone }).where(eq(usersTable.id, req.user!.userId));
+    const userUpdates: Record<string, unknown> = {};
+    if (phone !== undefined) userUpdates.phone = phone;
+    if (req.body.telegram !== undefined) userUpdates.telegram = req.body.telegram;
+    if (req.body.whatsapp !== undefined) userUpdates.whatsapp = req.body.whatsapp;
+    if (Object.keys(userUpdates).length > 0) {
+      await db.update(usersTable).set(userUpdates).where(eq(usersTable.id, req.user!.userId));
+    }
     res.json(await formatEngineer(updated));
   } catch (err) {
     req.log.error(err);
@@ -303,12 +315,56 @@ router.post("/engineers/verify", requireAuth, async (req, res) => {
   }
 });
 
-router.get("/engineers/:engineerId", async (req, res) => {
+router.get("/engineers/:engineerId", optionalAuth, async (req, res) => {
   try {
-    const id = parseInt(req.params.engineerId);
+    const id = parseInt(req.params.engineerId as string);
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, id)).limit(1);
     if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
-    res.json(await formatEngineer(eng));
+
+    const formatted = await formatEngineer(eng);
+
+    // Determine if contacts should be visible:
+    // - The engineer themselves can always see their own contact info
+    // - Any user who has an accepted bid (as customer) on an order linked to this engineer
+    let contactsUnlocked = false;
+    const requestingUserId = req.user?.userId;
+
+    if (requestingUserId) {
+      // Is the requester the engineer themselves?
+      if (eng.userId === requestingUserId) {
+        contactsUnlocked = true;
+      } else {
+        // Check if there's an accepted bid linking the requesting user (as customer) to this engineer
+        const acceptedBids = await db
+          .select({ bidId: bidsTable.id })
+          .from(bidsTable)
+          .innerJoin(ordersTable, eq(bidsTable.orderId, ordersTable.id))
+          .where(
+            and(
+              eq(bidsTable.engineerId, eng.id),
+              eq(bidsTable.status, "accepted"),
+              eq(ordersTable.customerId, requestingUserId)
+            )
+          )
+          .limit(1);
+        if (acceptedBids.length > 0) contactsUnlocked = true;
+      }
+    }
+
+    if (!contactsUnlocked) {
+      // Strip all contact channels when no accepted bid
+      const { phone: _ph, email: _em, telegram: _tg, whatsapp: _wa, ...userWithoutContacts } = formatted.user as {
+        phone?: string | null; email?: string | null; telegram?: string | null; whatsapp?: string | null; [key: string]: unknown
+      };
+      res.json({
+        ...formatted,
+        user: { ...userWithoutContacts, phone: null, email: null, telegram: null, whatsapp: null },
+        contactsLocked: true,
+      });
+      return;
+    }
+
+    res.json({ ...formatted, contactsLocked: false });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

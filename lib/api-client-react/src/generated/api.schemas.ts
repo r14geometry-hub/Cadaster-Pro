@@ -21,6 +21,10 @@ export interface User {
   /** @nullable */
   phone?: string | null;
   /** @nullable */
+  telegram?: string | null;
+  /** @nullable */
+  whatsapp?: string | null;
+  /** @nullable */
   avatarUrl?: string | null;
   /** @nullable */
   isBlocked?: string | null;
@@ -129,6 +133,8 @@ export interface EngineerUpdate {
   experience?: number;
   bio?: string;
   phone?: string;
+  telegram?: string;
+  whatsapp?: string;
   responseTime?: string;
   priceFrom?: number;
   isOnline?: boolean;
@@ -272,11 +278,69 @@ export interface Message {
   sender: User;
   text: string;
   isRead: boolean;
+  /** @nullable */
+  attachmentUrl?: string | null;
+  /** @nullable */
+  attachmentName?: string | null;
+  /** @nullable */
+  attachmentType?: string | null;
   createdAt: string;
 }
 
 export interface MessageInput {
-  text: string;
+  text?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+  attachmentType?: string;
+}
+
+export interface FileUploadResult {
+  url: string;
+  name: string;
+  type: string;
+  size?: number;
+}
+
+export interface Complaint {
+  id: number;
+  roomId: number;
+  reporterId: number;
+  /** @nullable */
+  reporterName?: string | null;
+  description: string;
+  status: string;
+  createdAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+}
+
+export interface ComplaintInput {
+  description: string;
+}
+
+export interface ComplaintList {
+  items: Complaint[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface UploadUrlRequest {
+  name: string;
+  size: number;
+  contentType: string;
+}
+
+export type UploadUrlResponseMetadata = {
+  name?: string;
+  size?: number;
+  contentType?: string;
+};
+
+export interface UploadUrlResponse {
+  uploadURL: string;
+  objectPath: string;
+  metadata?: UploadUrlResponseMetadata;
 }
 
 export interface StatsSummary {
@@ -457,6 +521,16 @@ region?: string;
 customerId?: number;
 page?: number;
 limit?: number;
+};
+
+export type UploadChatFileBody = {
+  /** File to upload (PDF/DOC/DOCX/XLS/XLSX/JPG/PNG/ZIP, max 20 MB) */
+  file: string;
+};
+
+export type ListAdminComplaintsParams = {
+status?: string;
+page?: number;
 };
 
 export type ListAdminUsersParams = {

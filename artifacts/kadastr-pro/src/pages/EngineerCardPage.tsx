@@ -82,7 +82,7 @@ export default function EngineerCardPage() {
   const queryClient = useQueryClient();
 
   const { data: engineer, isLoading } = useGetEngineer(engineerId, {
-    query: { enabled: !!engineerId, queryKey: getGetEngineerQueryKey(engineerId) },
+    query: { enabled: !!engineerId, queryKey: getGetEngineerQueryKey(engineerId), refetchInterval: 30000 },
   });
   const { data: reviews } = useListEngineerReviews(engineerId, {
     query: { enabled: !!engineerId, queryKey: getListEngineerReviewsQueryKey(engineerId) },
@@ -482,10 +482,36 @@ export default function EngineerCardPage() {
                   <MessageSquare className="w-4 h-4" /> Написать сообщение
                 </Button>
 
-                {engineer.user.phone && (
-                  <Button variant="outline" className="w-full gap-2" data-testid="button-phone">
-                    <Phone className="w-4 h-4" /> {engineer.user.phone}
-                  </Button>
+                {/* Contact info — gated until bid is accepted */}
+                {(engineer as unknown as { contactsLocked?: boolean }).contactsLocked === false ? (
+                  <div className="space-y-2" data-testid="contacts-unlocked">
+                    {engineer.user.phone && (
+                      <Button variant="outline" className="w-full gap-2" asChild data-testid="button-phone">
+                        <a href={`tel:${engineer.user.phone}`}>
+                          <Phone className="w-4 h-4" /> {engineer.user.phone}
+                        </a>
+                      </Button>
+                    )}
+                    {(engineer.user as unknown as { telegram?: string | null }).telegram && (
+                      <Button variant="outline" className="w-full gap-2" asChild data-testid="button-telegram">
+                        <a href={`https://t.me/${(engineer.user as unknown as { telegram: string }).telegram.replace(/^@/, "")}`} target="_blank" rel="noopener noreferrer">
+                          <span className="text-sm">💬</span> Telegram: {(engineer.user as unknown as { telegram: string }).telegram}
+                        </a>
+                      </Button>
+                    )}
+                    {(engineer.user as unknown as { whatsapp?: string | null }).whatsapp && (
+                      <Button variant="outline" className="w-full gap-2" asChild data-testid="button-whatsapp">
+                        <a href={`https://wa.me/${(engineer.user as unknown as { whatsapp: string }).whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer">
+                          <span className="text-sm">📱</span> WhatsApp: {(engineer.user as unknown as { whatsapp: string }).whatsapp}
+                        </a>
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 py-2 px-3 bg-muted/50 rounded-lg border text-xs text-muted-foreground" data-testid="contacts-locked">
+                    <Phone className="w-3.5 h-3.5 flex-shrink-0 opacity-40" />
+                    <span>Контакты доступны после выбора исполнителя</span>
+                  </div>
                 )}
 
                 <div className="text-xs text-muted-foreground space-y-2 pt-2 border-t">

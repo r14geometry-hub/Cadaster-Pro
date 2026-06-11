@@ -32,6 +32,20 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (header && header.startsWith("Bearer ")) {
+    const token = header.slice(7);
+    try {
+      const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
+      req.user = payload;
+    } catch {
+      // token invalid — ignore, proceed as anonymous
+    }
+  }
+  next();
+}
+
 export function requireRole(role: string) {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user || req.user.role !== role) {

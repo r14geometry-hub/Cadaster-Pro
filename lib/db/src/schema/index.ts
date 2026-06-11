@@ -9,3 +9,4 @@ export * from "./lead_prices";
 export * from "./profile_boosts";
 export * from "./platform_settings";
 export * from "./verification_logs";
+export * from "./complaints";

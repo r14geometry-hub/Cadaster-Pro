@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, messagesTable } from "@workspace/db";
 import { eq, and, sql, gte, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
@@ -366,6 +366,80 @@ router.get("/admin/verification-logs", requireAuth, requireRole("admin"), async 
     }));
 
     res.json({ items: enriched, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Complaints ────────────────────────────────────────────────────────────────
+
+router.get("/admin/complaints", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { status, page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 20;
+    const offset = (pageNum - 1) * limit;
+
+    let query = db.select().from(complaintsTable).$dynamic();
+    if (status) query = query.where(eq(complaintsTable.status, status));
+
+    const all = await query.orderBy(desc(complaintsTable.createdAt)).limit(limit).offset(offset);
+    // Count filtered total (matches status filter if applied)
+    let countQuery = db.select({ total: sql<number>`count(*)` }).from(complaintsTable).$dynamic();
+    if (status) countQuery = countQuery.where(eq(complaintsTable.status, status));
+    const [{ total }] = await countQuery;
+
+    const enriched = await Promise.all(all.map(async (c) => {
+      const [reporter] = await db.select().from(usersTable).where(eq(usersTable.id, c.reporterId)).limit(1);
+
+      // Fetch full message transcript for the chat room (admin has full access)
+      const messages = await db.select().from(messagesTable)
+        .where(eq(messagesTable.roomId, c.roomId))
+        .orderBy(sql`${messagesTable.createdAt} asc`);
+
+      const messagesWithSenders = await Promise.all(messages.map(async (m) => {
+        const [sender] = await db.select({ name: usersTable.name, avatarUrl: usersTable.avatarUrl }).from(usersTable).where(eq(usersTable.id, m.senderId)).limit(1);
+        return {
+          ...m,
+          senderName: sender?.name ?? "?",
+          attachmentUrl: m.attachmentUrl ?? null,
+          attachmentName: m.attachmentName ?? null,
+          attachmentType: m.attachmentType ?? null,
+        };
+      }));
+
+      return {
+        ...c,
+        reporterName: reporter?.name ?? null,
+        resolvedAt: c.resolvedAt?.toISOString() ?? null,
+        recentMessages: messagesWithSenders,
+      };
+    }));
+
+    res.json({ items: enriched, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/admin/complaints/:complaintId/resolve", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const complaintId = parseInt(req.params.complaintId as string);
+    const [updated] = await db.update(complaintsTable)
+      .set({ status: "resolved", resolvedAt: new Date() })
+      .where(eq(complaintsTable.id, complaintId))
+      .returning();
+
+    if (!updated) { res.status(404).json({ error: "Complaint not found" }); return; }
+
+    const [reporter] = await db.select().from(usersTable).where(eq(usersTable.id, updated.reporterId)).limit(1);
+    res.json({
+      ...updated,
+      reporterName: reporter?.name ?? null,
+      resolvedAt: updated.resolvedAt?.toISOString() ?? null,
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

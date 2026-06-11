@@ -18,6 +18,7 @@ tags:
   - name: admin
   - name: stats
   - name: verification
+  - name: storage
 
 paths:
   /healthz:
@@ -633,6 +634,142 @@ paths:
               schema:
                 $ref: "#/components/schemas/Message"
 
+  /chats/{roomId}/upload:
+    post:
+      operationId: uploadChatFile
+      tags: [chat]
+      summary: Upload a file attachment for a chat room
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  description: File to upload (PDF/DOC/DOCX/XLS/XLSX/JPG/PNG/ZIP, max 20 MB)
+              required: [file]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadResult"
+        "400":
+          description: Bad request (no file or invalid type)
+        "403":
+          description: Not a member of this chat room
+
+  /chats/{roomId}/complaint:
+    post:
+      operationId: createComplaint
+      tags: [chat]
+      summary: Submit a complaint about a chat room
+      parameters:
+        - name: roomId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ComplaintInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Complaint"
+
+  /admin/complaints:
+    get:
+      operationId: listAdminComplaints
+      tags: [admin]
+      summary: List all complaints (admin)
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComplaintList"
+
+  /admin/complaints/{complaintId}/resolve:
+    patch:
+      operationId: resolveComplaint
+      tags: [admin]
+      summary: Resolve a complaint (admin)
+      parameters:
+        - name: complaintId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Complaint"
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned URL for file upload
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadUrlRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadUrlResponse"
+
+  /storage/objects/{objectPath}:
+    get:
+      operationId: getStorageObject
+      tags: [storage]
+      summary: Serve a stored object
+      parameters:
+        - name: objectPath
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Object content
+
   /stats/summary:
     get:
       operationId: getStatsSummary
@@ -980,6 +1117,10 @@ components:
           type: string
         phone:
           type: ["string", "null"]
+        telegram:
+          type: ["string", "null"]
+        whatsapp:
+          type: ["string", "null"]
         avatarUrl:
           type: ["string", "null"]
         isBlocked:
@@ -1172,6 +1313,10 @@ components:
         bio:
           type: string
         phone:
+          type: string
+        telegram:
+          type: string
+        whatsapp:
           type: string
         responseTime:
           type: string
@@ -1427,6 +1572,12 @@ components:
           type: string
         isRead:
           type: boolean
+        attachmentUrl:
+          type: ["string", "null"]
+        attachmentName:
+          type: ["string", "null"]
+        attachmentType:
+          type: ["string", "null"]
         createdAt:
           type: string
       required: [id, roomId, senderId, sender, text, isRead, createdAt]
@@ -1436,7 +1587,97 @@ components:
       properties:
         text:
           type: string
-      required: [text]
+        attachmentUrl:
+          type: string
+        attachmentName:
+          type: string
+        attachmentType:
+          type: string
+
+    FileUploadResult:
+      type: object
+      properties:
+        url:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        size:
+          type: integer
+      required: [url, name, type]
+
+    Complaint:
+      type: object
+      properties:
+        id:
+          type: integer
+        roomId:
+          type: integer
+        reporterId:
+          type: integer
+        reporterName:
+          type: ["string", "null"]
+        description:
+          type: string
+        status:
+          type: string
+        createdAt:
+          type: string
+        resolvedAt:
+          type: ["string", "null"]
+      required: [id, roomId, reporterId, description, status, createdAt]
+
+    ComplaintInput:
+      type: object
+      properties:
+        description:
+          type: string
+      required: [description]
+
+    ComplaintList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Complaint"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    UploadUrlRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        size:
+          type: integer
+        contentType:
+          type: string
+      required: [name, size, contentType]
+
+    UploadUrlResponse:
+      type: object
+      properties:
+        uploadURL:
+          type: string
+        objectPath:
+          type: string
+        metadata:
+          type: object
+          properties:
+            name:
+              type: string
+            size:
+              type: integer
+            contentType:
+              type: string
+      required: [uploadURL, objectPath]
 
     StatsSummary:
       type: object

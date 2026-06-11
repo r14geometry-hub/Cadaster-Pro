@@ -48,6 +48,9 @@ const profileSchema = z.object({
   region: z.string().min(1, "Выберите регион"),
   experience: z.string(),
   bio: z.string().optional(),
+  phone: z.string().optional(),
+  telegram: z.string().optional(),
+  whatsapp: z.string().optional(),
 });
 
 const BID_STATUS: Record<string, { label: string; className: string }> = {
@@ -114,7 +117,14 @@ export default function EngineerDashboardPage() {
   });
   const profileForm = useForm({
     resolver: zodResolver(profileSchema),
-    defaultValues: { region: profile?.region ?? "", experience: String(profile?.experience ?? 0), bio: profile?.bio ?? "" },
+    defaultValues: {
+      region: profile?.region ?? "",
+      experience: String(profile?.experience ?? 0),
+      bio: profile?.bio ?? "",
+      phone: profile?.user?.phone ?? "",
+      telegram: (profile?.user as unknown as { telegram?: string | null })?.telegram ?? "",
+      whatsapp: (profile?.user as unknown as { whatsapp?: string | null })?.whatsapp ?? "",
+    },
   });
 
   const createBid = useCreateBid({
@@ -559,7 +569,10 @@ export default function EngineerDashboardPage() {
                         experience: parseInt(v.experience),
                         bio: v.bio,
                         specializations: selectedSpecs.length > 0 ? selectedSpecs : profile.specializations,
-                      },
+                        phone: v.phone || undefined,
+                        telegram: v.telegram || undefined,
+                        whatsapp: v.whatsapp || undefined,
+                      } as Parameters<typeof updateProfile.mutate>[0]["data"],
                     }))}
                     className="space-y-4"
                   >
@@ -579,6 +592,18 @@ export default function EngineerDashboardPage() {
                     <div>
                       <label className="text-sm font-medium mb-1 block">О себе</label>
                       <Textarea {...profileForm.register("bio")} rows={4} placeholder="Расскажите о своём опыте..." data-testid="input-bio" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Телефон</label>
+                      <Input {...profileForm.register("phone")} placeholder="+7 (999) 123-45-67" data-testid="input-phone" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Telegram</label>
+                      <Input {...profileForm.register("telegram")} placeholder="@username" data-testid="input-telegram" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">WhatsApp</label>
+                      <Input {...profileForm.register("whatsapp")} placeholder="+7 (999) 123-45-67" data-testid="input-whatsapp" />
                     </div>
                     <Button type="submit" disabled={updateProfile.isPending} data-testid="button-save-profile">
                       {updateProfile.isPending ? "Сохраняем..." : "Сохранить профиль"}

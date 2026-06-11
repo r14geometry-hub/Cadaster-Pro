@@ -24,11 +24,13 @@ import {
   useUpdateAdminSettings,
   useListAdminVerificationLogs, getListAdminVerificationLogsQueryKey,
   useReverifyEngineer,
+  useListAdminComplaints, getListAdminComplaintsQueryKey,
+  useResolveComplaint,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck, RefreshCw } from "lucide-react";
+import { Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck, RefreshCw, MessageSquare } from "lucide-react";
 
 const DEBT_LIMIT = 3000;
 
@@ -116,6 +118,21 @@ export default function AdminPage() {
     },
   });
 
+  const { data: complaintsData, isLoading: complaintsLoading } = useListAdminComplaints(
+    {},
+    { query: { enabled: user?.role === "admin", queryKey: getListAdminComplaintsQueryKey({}) } }
+  );
+
+  const resolveComplaint = useResolveComplaint({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAdminComplaintsQueryKey({}) });
+        toast({ title: "Жалоба закрыта" });
+      },
+      onError: () => toast({ title: "Ошибка", variant: "destructive" }),
+    },
+  });
+
   const reverify = useReverifyEngineer({
     mutation: {
       onSuccess: (result) => {
@@ -200,6 +217,14 @@ export default function AdminPage() {
           <TabsTrigger value="leads" data-testid="tab-admin-leads">Учёт лидов</TabsTrigger>
           <TabsTrigger value="engineers-pro" data-testid="tab-admin-engineers-pro">PRO и Буст</TabsTrigger>
           <TabsTrigger value="verification" data-testid="tab-admin-verification">Логи проверок</TabsTrigger>
+          <TabsTrigger value="complaints" data-testid="tab-admin-complaints">
+            Жалобы
+            {complaintsData && complaintsData.items.filter(c => c.status === "open").length > 0 && (
+              <span className="ml-1.5 bg-red-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5">
+                {complaintsData.items.filter(c => c.status === "open").length}
+              </span>
+            )}
+          </TabsTrigger>
         </TabsList>
 
         {/* Users */}
@@ -650,7 +675,156 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Complaints */}
+        <TabsContent value="complaints">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" /> Жалобы пользователей
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {complaintsLoading ? <Skeleton className="h-64 rounded" /> : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Дата</TableHead>
+                        <TableHead>Жалобщик / Чат</TableHead>
+                        <TableHead>Описание</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead>Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(!complaintsData || complaintsData.items.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            Жалоб пока нет
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {complaintsData?.items.map((c) => (
+                        <TableRow key={c.id} data-testid={`row-complaint-${c.id}`}>
+                          <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                            {new Date(c.createdAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{(c as unknown as { reporterName?: string }).reporterName ?? `#${c.reporterId}`}</p>
+                              <p className="text-xs text-muted-foreground">ID {c.reporterId}</p>
+                              <a
+                                href={`/chat/${c.roomId}`}
+                                className="text-primary text-xs flex items-center gap-1 hover:underline mt-0.5"
+                              >
+                                <MessageSquare className="w-3 h-3" /> Чат #{c.roomId}
+                              </a>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm line-clamp-2">{c.description}</p>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={c.status === "open" ? "destructive" : "secondary"}
+                              data-testid={`badge-complaint-status-${c.id}`}
+                            >
+                              {c.status === "open" ? "Открыта" : "Закрыта"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1.5">
+                              {c.status === "open" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="gap-1.5 text-xs"
+                                  onClick={() => resolveComplaint.mutate({ complaintId: c.id })}
+                                  disabled={resolveComplaint.isPending}
+                                  data-testid={`button-resolve-complaint-${c.id}`}
+                                >
+                                  Закрыть
+                                </Button>
+                              )}
+                              <ComplaintTranscript complaint={c} />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+type ComplaintItem = {
+  id: number;
+  roomId: number;
+  reporterId: number;
+  description: string;
+  status: string;
+  createdAt: string;
+  resolvedAt?: string | null;
+  reporterName?: string | null;
+  recentMessages?: Array<{
+    id: number;
+    senderId: number;
+    senderName: string;
+    text: string;
+    createdAt: string;
+    attachmentUrl?: string | null;
+    attachmentName?: string | null;
+    attachmentType?: string | null;
+  }>;
+};
+
+function ComplaintTranscript({ complaint }: { complaint: ComplaintItem }) {
+  const [open, setOpen] = useState(false);
+  const msgs = complaint.recentMessages ?? [];
+
+  return (
+    <div>
+      <button
+        className="text-xs text-primary hover:underline flex items-center gap-1"
+        onClick={() => setOpen(!open)}
+        data-testid={`button-transcript-${complaint.id}`}
+      >
+        <MessageSquare className="w-3 h-3" />
+        {open ? "Скрыть переписку" : `Переписка (${msgs.length})`}
+      </button>
+      {open && (
+        <div className="mt-2 border rounded-lg bg-muted/30 p-2 space-y-1.5 max-h-60 overflow-y-auto" data-testid={`transcript-${complaint.id}`}>
+          {msgs.length === 0 && (
+            <p className="text-xs text-muted-foreground italic">Нет сообщений</p>
+          )}
+          {msgs.map((m) => (
+            <div key={m.id} className="text-xs">
+              <span className="font-medium text-foreground">{m.senderName}</span>
+              <span className="text-muted-foreground ml-1">
+                {new Date(m.createdAt).toLocaleString("ru-RU", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
+              </span>
+              {m.text && <p className="mt-0.5 text-muted-foreground">{m.text}</p>}
+              {m.attachmentUrl && (
+                <a
+                  href={m.attachmentUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline text-xs"
+                >
+                  📎 {m.attachmentName ?? "Файл"}
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
