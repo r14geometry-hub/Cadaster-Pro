@@ -157,6 +157,10 @@ export interface VerifyResult {
   /** @nullable */
   engineerName?: string | null;
   message: string;
+  /** @nullable */
+  preFilledSro?: string | null;
+  /** @nullable */
+  preFilledDistrict?: string | null;
 }
 
 export interface Order {

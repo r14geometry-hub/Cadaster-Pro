@@ -2,6 +2,7 @@ import { db, engineersTable, verificationLogsTable, notificationsTable, usersTab
 import { eq, and, isNotNull } from "drizzle-orm";
 import { logger } from "../lib/logger";
 import { rosreestrProvider, computeRatingFromRosreestr } from "./rosreestr";
+import { getDistrictFromAttestat } from "../utils/attestat-district";
 import { calculateWeightedRating } from "../routes/reviews";
 import { reviewsTable } from "@workspace/db";
 
@@ -115,12 +116,17 @@ async function reverifyAllEngineers(): Promise<void> {
       const rosreestrScore = rosreestrBaseRating > 0 ? rosreestrBaseRating : null;
       const newRating = calculateWeightedRating(publishedReviews, rosreestrScore);
 
+      const preFilledSro = !eng.sro ? record.sroName : null;
+      const derivedDistrict = getDistrictFromAttestat(attestatNumber);
+      const preFilledDistrict = !eng.district ? derivedDistrict : null;
+
       await db
         .update(engineersTable)
         .set({
           rosreestrStatus: record.status,
           sroName: record.sroName,
-          sro: record.sroName,
+          ...(preFilledSro !== null ? { sro: preFilledSro } : {}),
+          ...(preFilledDistrict !== null ? { district: preFilledDistrict } : {}),
           rosreestrCheckedAt: new Date(),
           rosreestrWorksCount: record.worksCount,
           rosreestrRejectionsCount: record.rejectionsCount,

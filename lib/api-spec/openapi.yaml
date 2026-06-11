@@ -1542,6 +1542,10 @@ components:
           type: ["string", "null"]
         message:
           type: string
+        preFilledSro:
+          type: ["string", "null"]
+        preFilledDistrict:
+          type: ["string", "null"]
       required: [isValid, message]
 
     Order:

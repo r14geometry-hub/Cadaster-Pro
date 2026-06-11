@@ -174,6 +174,10 @@ export default function EngineerDashboardPage() {
     mutation: {
       onSuccess: (result) => {
         queryClient.invalidateQueries({ queryKey: getGetMyEngineerProfileQueryKey() });
+        if (result.isValid) {
+          if (result.preFilledSro) profileForm.setValue("sro", result.preFilledSro);
+          if (result.preFilledDistrict) profileForm.setValue("district", result.preFilledDistrict);
+        }
         toast({ title: result.isValid ? "Верификация пройдена" : "Номер не найден", description: result.message });
       },
     },

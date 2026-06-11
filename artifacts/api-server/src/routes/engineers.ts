@@ -3,6 +3,7 @@ import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platfor
 import { eq, and, gte, sql, desc } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
+import { getDistrictFromAttestat } from "../utils/attestat-district";
 
 const router = Router();
 
@@ -327,13 +328,18 @@ router.post("/engineers/verify", requireAuth, async (req, res) => {
     const rejectionRate = worksCount > 0 ? record.rejectionsCount / worksCount : 0;
     const newRating = computeRatingFromRosreestr(record);
 
+    const preFilledSro = !eng.sro ? record.sroName : null;
+    const derivedDistrict = getDistrictFromAttestat(registryNumber);
+    const preFilledDistrict = !eng.district ? derivedDistrict : null;
+
     await db.update(engineersTable).set({
       registryNumber,
       attestatNumber: registryNumber,
       isVerified: true,
       rosreestrStatus: record.status,
       sroName: record.sroName,
-      sro: record.sroName,
+      ...(preFilledSro !== null ? { sro: preFilledSro } : {}),
+      ...(preFilledDistrict !== null ? { district: preFilledDistrict } : {}),
       rosreestrCheckedAt: new Date(),
       rosreestrWorksCount: record.worksCount,
       rosreestrRejectionsCount: record.rejectionsCount,
@@ -354,6 +360,8 @@ router.post("/engineers/verify", requireAuth, async (req, res) => {
       isValid: true,
       engineerName: record.engineerName,
       message: `Верификация пройдена. Инженер ${record.engineerName} найден в реестре Росреестра. СРО: ${record.sroName}.`,
+      preFilledSro,
+      preFilledDistrict,
     });
   } catch (err) {
     req.log.error(err);

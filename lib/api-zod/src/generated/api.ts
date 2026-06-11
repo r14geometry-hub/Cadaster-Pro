@@ -417,7 +417,9 @@ export const VerifyEngineerBody = zod.object({
 export const VerifyEngineerResponse = zod.object({
   "isValid": zod.boolean(),
   "engineerName": zod.string().nullish(),
-  "message": zod.string()
+  "message": zod.string(),
+  "preFilledSro": zod.string().nullish(),
+  "preFilledDistrict": zod.string().nullish()
 })
 
 

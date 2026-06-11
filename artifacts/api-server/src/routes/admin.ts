@@ -4,6 +4,7 @@ import { eq, and, sql, gte, desc, or, isNull, lt } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 import { calculateWeightedRating } from "./reviews";
+import { getDistrictFromAttestat } from "../utils/attestat-district";
 
 const router = Router();
 
@@ -706,11 +707,16 @@ router.post("/admin/engineers/:id/reverify", requireAuth, requireRole(ADMIN_ROLE
     const rosreestrScore = rosreestrBaseRating > 0 ? rosreestrBaseRating : null;
     const newRating = calculateWeightedRating(publishedReviews, rosreestrScore);
 
+    const preFilledSro = !eng.sro ? record.sroName : null;
+    const derivedDistrict = getDistrictFromAttestat(attestatNumber);
+    const preFilledDistrict = !eng.district ? derivedDistrict : null;
+
     await db.update(engineersTable).set({
       isVerified: true,
       rosreestrStatus: record.status,
       sroName: record.sroName,
-      sro: record.sroName,
+      ...(preFilledSro !== null ? { sro: preFilledSro } : {}),
+      ...(preFilledDistrict !== null ? { district: preFilledDistrict } : {}),
       rosreestrCheckedAt: new Date(),
       rosreestrWorksCount: record.worksCount,
       rosreestrRejectionsCount: record.rejectionsCount,
