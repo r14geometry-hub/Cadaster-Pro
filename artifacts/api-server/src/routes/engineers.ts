@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
 
@@ -97,6 +97,52 @@ router.get("/engineers/top", async (req, res) => {
       .orderBy(sql`${engineersTable.rating} desc, ${engineersTable.reviewCount} desc`)
       .limit(6);
     res.json(await Promise.all(all.map(formatEngineer)));
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/engineers/me/leads", requireAuth, async (req, res) => {
+  try {
+    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
+    if (!eng) { res.status(404).json({ error: "Engineer profile not found" }); return; }
+
+    const { page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 30;
+    const offset = (pageNum - 1) * limit;
+
+    const leads = await db.select().from(leadsTable)
+      .where(eq(leadsTable.engineerId, eng.id))
+      .orderBy(sql`${leadsTable.createdAt} desc`)
+      .limit(limit).offset(offset);
+
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` })
+      .from(leadsTable).where(eq(leadsTable.engineerId, eng.id));
+
+    res.json({ items: leads, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/engineers/me/balance", requireAuth, async (req, res) => {
+  try {
+    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
+    if (!eng) { res.status(404).json({ error: "Engineer profile not found" }); return; }
+
+    const allLeads = await db.select().from(leadsTable).where(eq(leadsTable.engineerId, eng.id));
+    const totalAccrued = allLeads.reduce((s, l) => s + l.leadCost, 0);
+    const totalPaid = allLeads.filter(l => l.paymentStatus === "paid").reduce((s, l) => s + l.leadCost, 0);
+
+    res.json({
+      debtAmount: eng.debtAmount ?? 0,
+      totalAccrued,
+      totalPaid,
+      leadCount: allLeads.length,
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

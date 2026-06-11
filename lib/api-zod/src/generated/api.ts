@@ -178,6 +178,41 @@ export const ListTopEngineersResponse = zod.array(ListTopEngineersResponseItem)
 
 
 /**
+ * @summary Get leads for the authenticated engineer
+ */
+export const GetMyLeadsQueryParams = zod.object({
+  "page": zod.coerce.number().optional()
+})
+
+export const GetMyLeadsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "engineerId": zod.number(),
+  "engineerName": zod.string().optional(),
+  "serviceType": zod.string(),
+  "leadCost": zod.number(),
+  "paymentStatus": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Get billing balance for the authenticated engineer
+ */
+export const GetMyBalanceResponse = zod.object({
+  "debtAmount": zod.number(),
+  "totalAccrued": zod.number(),
+  "totalPaid": zod.number(),
+  "leadCount": zod.number()
+})
+
+
+/**
  * @summary Get current engineer profile
  */
 export const GetMyEngineerProfileResponse = zod.object({

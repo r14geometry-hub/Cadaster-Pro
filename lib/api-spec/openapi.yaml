@@ -149,6 +149,37 @@ paths:
                 items:
                   $ref: "#/components/schemas/Engineer"
 
+  /engineers/me/leads:
+    get:
+      operationId: getMyLeads
+      tags: [engineers]
+      summary: Get leads for the authenticated engineer
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeadList"
+
+  /engineers/me/balance:
+    get:
+      operationId: getMyBalance
+      tags: [engineers]
+      summary: Get billing balance for the authenticated engineer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineerBalance"
+
   /engineers/me:
     get:
       operationId: getMyEngineerProfile
@@ -1351,6 +1382,19 @@ components:
           type: string
         isBlocked:
           type: boolean
+
+    EngineerBalance:
+      type: object
+      properties:
+        debtAmount:
+          type: integer
+        totalAccrued:
+          type: integer
+        totalPaid:
+          type: integer
+        leadCount:
+          type: integer
+      required: [debtAmount, totalAccrued, totalPaid, leadCount]
 
     LeadPrice:
       type: object

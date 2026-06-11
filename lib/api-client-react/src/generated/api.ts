@@ -34,9 +34,11 @@ import type {
   CompleteOrderInput,
   CompleteOrderResult,
   Engineer,
+  EngineerBalance,
   EngineerDebtSummary,
   EngineerList,
   EngineerUpdate,
+  GetMyLeadsParams,
   HealthStatus,
   Lead,
   LeadList,
@@ -594,6 +596,167 @@ export function useListTopEngineers<TData = Awaited<ReturnType<typeof listTopEng
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListTopEngineersQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMyLeadsUrl = (params?: GetMyLeadsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/engineers/me/leads?${stringifiedParams}` : `/api/engineers/me/leads`
+}
+
+/**
+ * @summary Get leads for the authenticated engineer
+ */
+export const getMyLeads = async (params?: GetMyLeadsParams, options?: RequestInit): Promise<LeadList> => {
+
+  return customFetch<LeadList>(getGetMyLeadsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyLeadsQueryKey = (params?: GetMyLeadsParams,) => {
+    return [
+    `/api/engineers/me/leads`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetMyLeadsQueryOptions = <TData = Awaited<ReturnType<typeof getMyLeads>>, TError = ErrorType<unknown>>(params?: GetMyLeadsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyLeads>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyLeadsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyLeads>>> = ({ signal }) => getMyLeads(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyLeads>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyLeadsQueryResult = NonNullable<Awaited<ReturnType<typeof getMyLeads>>>
+export type GetMyLeadsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get leads for the authenticated engineer
+ */
+
+export function useGetMyLeads<TData = Awaited<ReturnType<typeof getMyLeads>>, TError = ErrorType<unknown>>(
+ params?: GetMyLeadsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyLeads>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyLeadsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetMyBalanceUrl = () => {
+
+
+
+
+  return `/api/engineers/me/balance`
+}
+
+/**
+ * @summary Get billing balance for the authenticated engineer
+ */
+export const getMyBalance = async ( options?: RequestInit): Promise<EngineerBalance> => {
+
+  return customFetch<EngineerBalance>(getGetMyBalanceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetMyBalanceQueryKey = () => {
+    return [
+    `/api/engineers/me/balance`
+    ] as const;
+    }
+
+
+export const getGetMyBalanceQueryOptions = <TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetMyBalanceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBalance>>> = ({ signal }) => getMyBalance({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetMyBalanceQueryResult = NonNullable<Awaited<ReturnType<typeof getMyBalance>>>
+export type GetMyBalanceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get billing balance for the authenticated engineer
+ */
+
+export function useGetMyBalance<TData = Awaited<ReturnType<typeof getMyBalance>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getMyBalance>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetMyBalanceQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

@@ -20,7 +20,8 @@ import {
   useVerifyEngineer,
   useListChats, getListChatsQueryKey,
   useCreateChatRoom,
-  useListAdminLeads, getListAdminLeadsQueryKey,
+  useGetMyLeads, getGetMyLeadsQueryKey,
+  useGetMyBalance, getGetMyBalanceQueryKey,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
@@ -85,15 +86,19 @@ export default function EngineerDashboardPage() {
   const { data: chats } = useListChats({ query: { enabled: !!user, queryKey: getListChatsQueryKey() } });
   const totalUnread = chats?.reduce((s, c) => s + (c.unreadCount ?? 0), 0) ?? 0;
 
-  const { data: leadsData } = useListAdminLeads(
-    { engineerId: profile?.id },
-    { query: { enabled: !!profile, queryKey: getListAdminLeadsQueryKey({ engineerId: profile?.id }) } }
+  const { data: leadsData } = useGetMyLeads(
+    {},
+    { query: { enabled: !!user, queryKey: getGetMyLeadsQueryKey({}) } }
   );
 
+  const { data: balanceData } = useGetMyBalance({
+    query: { enabled: !!user, queryKey: getGetMyBalanceQueryKey() },
+  });
+
   const leads = leadsData?.items ?? [];
-  const totalAccrued = leads.reduce((s, l) => s + l.leadCost, 0);
-  const totalPaid = leads.filter(l => l.paymentStatus === "paid").reduce((s, l) => s + l.leadCost, 0);
-  const currentDebt = profile?.debtAmount ?? 0;
+  const totalAccrued = balanceData?.totalAccrued ?? 0;
+  const totalPaid = balanceData?.totalPaid ?? 0;
+  const currentDebt = balanceData?.debtAmount ?? profile?.debtAmount ?? 0;
   const debtBlocked = currentDebt >= DEBT_LIMIT;
   const debtWarning = currentDebt >= DEBT_LIMIT * 0.8;
 

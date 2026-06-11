@@ -286,6 +286,13 @@ export interface AdminUserUpdate {
   isBlocked?: boolean;
 }
 
+export interface EngineerBalance {
+  debtAmount: number;
+  totalAccrued: number;
+  totalPaid: number;
+  leadCount: number;
+}
+
 export interface LeadPrice {
   id: number;
   serviceType: string;
@@ -380,6 +387,10 @@ minRating?: number;
 search?: string;
 page?: number;
 limit?: number;
+};
+
+export type GetMyLeadsParams = {
+page?: number;
 };
 
 export type ListOrdersParams = {

@@ -105,13 +105,20 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
     const { status } = req.body;
     if (!status) { res.status(400).json({ error: "Status required" }); return; }
 
+    // Fetch current bid state BEFORE updating to guard idempotency
+    const [existingBid] = await db.select().from(bidsTable).where(eq(bidsTable.id, bidId)).limit(1);
+    if (!existingBid) { res.status(404).json({ error: "Bid not found" }); return; }
+
     const [updated] = await db.update(bidsTable)
       .set({ status })
       .where(eq(bidsTable.id, bidId))
       .returning();
     if (!updated) { res.status(404).json({ error: "Bid not found" }); return; }
 
-    if (status === "accepted") {
+    // Only run accept side-effects when transitioning INTO accepted (not already accepted)
+    const wasAlreadyAccepted = existingBid.status === "accepted";
+
+    if (status === "accepted" && !wasAlreadyAccepted) {
       // Move order to in_progress
       await db.update(ordersTable)
         .set({ status: "in_progress" })
@@ -144,23 +151,29 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
         });
       }
 
-      // Create lead record at configured price
-      const [priceRow] = await db.select().from(leadPricesTable)
-        .where(eq(leadPricesTable.serviceType, order.serviceType)).limit(1);
-      const leadCost = priceRow?.price ?? 500;
+      // Create lead record at configured price — guard against duplicates
+      const existingLead = await db.select().from(leadsTable)
+        .where(and(eq(leadsTable.orderId, orderId), eq(leadsTable.engineerId, updated.engineerId)))
+        .limit(1);
 
-      await db.insert(leadsTable).values({
-        orderId,
-        engineerId: updated.engineerId,
-        serviceType: order.serviceType,
-        leadCost,
-        paymentStatus: "unpaid",
-      });
+      if (existingLead.length === 0) {
+        const [priceRow] = await db.select().from(leadPricesTable)
+          .where(eq(leadPricesTable.serviceType, order.serviceType)).limit(1);
+        const leadCost = priceRow?.price ?? 500;
 
-      // Update engineer debtAmount
-      await db.update(engineersTable)
-        .set({ debtAmount: sql`${engineersTable.debtAmount} + ${leadCost}` })
-        .where(eq(engineersTable.id, updated.engineerId));
+        await db.insert(leadsTable).values({
+          orderId,
+          engineerId: updated.engineerId,
+          serviceType: order.serviceType,
+          leadCost,
+          paymentStatus: "unpaid",
+        });
+
+        // Update engineer debtAmount
+        await db.update(engineersTable)
+          .set({ debtAmount: sql`${engineersTable.debtAmount} + ${leadCost}` })
+          .where(eq(engineersTable.id, updated.engineerId));
+      }
     }
 
     res.json(await formatBid(updated));
