@@ -53,6 +53,12 @@ router.post("/auth/register", async (req, res) => {
         return;
       }
 
+      const existingAttestat = await db.select({ id: engineersTable.id }).from(engineersTable).where(eq(engineersTable.attestatNumber, attestatNumber)).limit(1);
+      if (existingAttestat.length > 0) {
+        res.status(409).json({ error: "Аттестат с таким номером уже зарегистрирован в системе. Каждый аттестат может быть привязан только к одному аккаунту." });
+        return;
+      }
+
       const existing = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
       if (existing.length > 0) {
         res.status(400).json({ error: "Email already in use" });

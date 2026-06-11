@@ -73,6 +73,9 @@ import type {
   OrderUpdate,
   PlatformSettings,
   PlatformSettingsInput,
+  Register400,
+  Register403,
+  Register409,
   RegisterInput,
   ReverifyResult,
   Review,
@@ -204,7 +207,7 @@ export const register = async (registerInput: RegisterInput, options?: RequestIn
 
 
 
-export const getRegisterMutationOptions = <TError = ErrorType<unknown>,
+export const getRegisterMutationOptions = <TError = ErrorType<Register400 | Register403 | Register409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof register>>, TError,{data: BodyType<RegisterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
 ): UseMutationOptions<Awaited<ReturnType<typeof register>>, TError,{data: BodyType<RegisterInput>}, TContext> => {
 
@@ -233,12 +236,12 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type RegisterMutationResult = NonNullable<Awaited<ReturnType<typeof register>>>
     export type RegisterMutationBody = BodyType<RegisterInput>
-    export type RegisterMutationError = ErrorType<unknown>
+    export type RegisterMutationError = ErrorType<Register400 | Register403 | Register409>
 
     /**
  * @summary Register a new user
  */
-export const useRegister = <TError = ErrorType<unknown>,
+export const useRegister = <TError = ErrorType<Register400 | Register403 | Register409>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof register>>, TError,{data: BodyType<RegisterInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof register>>,

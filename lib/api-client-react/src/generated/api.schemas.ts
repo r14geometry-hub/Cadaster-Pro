@@ -557,6 +557,18 @@ export interface ReverifyResult {
   message: string;
 }
 
+export type Register400 = {
+  error: string;
+};
+
+export type Register403 = {
+  error: string;
+};
+
+export type Register409 = {
+  error: string;
+};
+
 export type ListEngineersParams = {
 region?: string;
 specialization?: string;

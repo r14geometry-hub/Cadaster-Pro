@@ -27,7 +27,7 @@ export const engineersTable = pgTable("engineers", {
   proExpiresAt: timestamp("pro_expires_at"),
   debtAmount: integer("debt_amount").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-  attestatNumber: varchar("attestat_number", { length: 100 }),
+  attestatNumber: varchar("attestat_number", { length: 100 }).unique(),
   rosreestrStatus: varchar("rosreestr_status", { length: 50 }),
   sroName: text("sro_name"),
   rosreestrCheckedAt: timestamp("rosreestr_checked_at"),

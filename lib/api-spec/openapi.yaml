@@ -52,6 +52,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AuthResult"
+        "400":
+          description: Missing or invalid fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required: [error]
+        "403":
+          description: Attestat not found in Rosreestr or status is not active
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required: [error]
+        "409":
+          description: Attestat number already registered to another account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                required: [error]
 
   /auth/login:
     post:
