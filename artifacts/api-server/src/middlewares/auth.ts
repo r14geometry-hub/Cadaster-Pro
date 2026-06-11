@@ -1,7 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.SESSION_SECRET ?? "kadastr-pro-secret";
+const secret = process.env.SESSION_SECRET;
+if (!secret) {
+  throw new Error(
+    "SESSION_SECRET environment variable is required but not set. " +
+      "Generate a strong random string and set it before starting the server."
+  );
+}
+const JWT_SECRET: string = secret;
 
 export interface JwtPayload {
   userId: number;

@@ -53,7 +53,6 @@ import {
   CreditCard, Plus, Archive, ChevronDown, ChevronUp, Pencil, History,
 } from "lucide-react";
 
-const DEBT_LIMIT = 3000;
 
 const ALL_ROLES = ["customer", "engineer", "admin", "superadmin"];
 const ROLE_LABELS: Record<string, string> = {
@@ -243,6 +242,11 @@ export default function AdminPage() {
       onError: () => toast({ title: "Ошибка", description: "Не удалось повторить проверку", variant: "destructive" }),
     },
   });
+
+  const { data: adminSettings } = useGetAdminSettings({
+    query: { enabled: isAdmin, queryKey: getGetAdminSettingsQueryKey() },
+  });
+  const debtLimit = parseInt(adminSettings?.["debt_limit"] ?? "3000") || 3000;
 
   if (!isAdmin) {
     return (
@@ -715,11 +719,11 @@ export default function AdminPage() {
                             <TableCell className="text-right text-green-600">{s.totalPaid.toLocaleString("ru-RU")} ₽</TableCell>
                             <TableCell className="text-right font-semibold">{s.debtAmount.toLocaleString("ru-RU")} ₽</TableCell>
                             <TableCell>
-                              {s.debtAmount >= DEBT_LIMIT ? (
+                              {s.debtAmount >= debtLimit ? (
                                 <Badge variant="destructive" className="text-xs gap-1">
                                   <AlertTriangle className="w-3 h-3" /> Заблокирован
                                 </Badge>
-                              ) : s.debtAmount >= DEBT_LIMIT * 0.8 ? (
+                              ) : s.debtAmount >= debtLimit * 0.8 ? (
                                 <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700 border-amber-200">
                                   Предупреждение
                                 </Badge>
@@ -920,7 +924,7 @@ export default function AdminPage() {
                             )}
                           </TableCell>
                           <TableCell>
-                            <span className={`text-sm font-semibold ${eng.debtAmount >= DEBT_LIMIT ? "text-red-600" : eng.debtAmount >= DEBT_LIMIT * 0.8 ? "text-amber-600" : "text-foreground"}`}>
+                            <span className={`text-sm font-semibold ${eng.debtAmount >= debtLimit ? "text-red-600" : eng.debtAmount >= debtLimit * 0.8 ? "text-amber-600" : "text-foreground"}`}>
                               {eng.debtAmount.toLocaleString("ru-RU")} ₽
                             </span>
                           </TableCell>

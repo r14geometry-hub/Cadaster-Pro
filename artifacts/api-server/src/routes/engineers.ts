@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable, bidsTable, ordersTable, notificationsTable, regionsTable } from "@workspace/db";
 import { eq, and, gte, sql, desc } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middlewares/auth";
+import { getSetting } from "../lib/seed-lead-prices";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 import { getDistrictFromAttestat } from "../utils/attestat-district";
 
@@ -126,7 +127,8 @@ router.get("/engineers", async (req, res) => {
       .where(gte(profileBoostsTable.expiresAt, now));
     const boostedEngIds = new Set(activeBoosts.map(b => b.engineerId));
 
-    const DEBT_LIMIT = 3000;
+    const debtLimitStr = await getSetting("debt_limit", "3000");
+    const DEBT_LIMIT = parseInt(debtLimitStr) || 3000;
 
     formatted.sort((a, b) => {
       const aDebtBlock = a.debtAmount >= DEBT_LIMIT;

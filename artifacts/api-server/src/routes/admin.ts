@@ -230,7 +230,10 @@ router.patch("/admin/leads/:leadId", requireAuth, requireRole(ADMIN_ROLES), asyn
   try {
     const leadId = parseInt(req.params.leadId as string);
     const { paymentStatus } = req.body;
-    if (!paymentStatus) { res.status(400).json({ error: "paymentStatus required" }); return; }
+    const VALID_PAYMENT_STATUSES = ["paid", "unpaid"];
+    if (!paymentStatus || !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
+      res.status(400).json({ error: "paymentStatus must be 'paid' or 'unpaid'" }); return;
+    }
 
     const [lead] = await db.select().from(leadsTable).where(eq(leadsTable.id, leadId)).limit(1);
     if (!lead) { res.status(404).json({ error: "Lead not found" }); return; }

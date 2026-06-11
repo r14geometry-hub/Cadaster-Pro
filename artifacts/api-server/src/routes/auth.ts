@@ -1,5 +1,6 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 import { db, usersTable, engineersTable, verificationLogsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { signToken } from "../middlewares/auth";
@@ -7,7 +8,16 @@ import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosre
 
 const router = Router();
 
-router.post("/auth/register", async (req, res) => {
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Слишком много попыток. Повторите через 15 минут." },
+  skipSuccessfulRequests: false,
+});
+
+router.post("/auth/register", authLimiter, async (req, res) => {
   try {
     const { name, email, password, role, phone, attestatNumber } = req.body;
     if (!name || !email || !password || !role) {
@@ -121,7 +131,7 @@ router.post("/auth/register", async (req, res) => {
   }
 });
 
-router.post("/auth/login", async (req, res) => {
+router.post("/auth/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {

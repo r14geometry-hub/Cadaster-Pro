@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, usersTable, ordersTable, engineersTable, reviewsTable, regionsTable, notificationsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
-import { requireAuth } from "../middlewares/auth";
+import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { calculateWeightedRating } from "./reviews";
 import { orderMatchesTerritories, type ServiceArea } from "../lib/territory-match";
 
@@ -18,7 +18,7 @@ async function formatOrder(order: typeof ordersTable.$inferSelect) {
   };
 }
 
-router.get("/orders", async (req, res) => {
+router.get("/orders", optionalAuth, async (req, res) => {
   try {
     const { status, serviceType, region, customerId, page = "1", limit = "12", forEngineer } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -29,7 +29,19 @@ router.get("/orders", async (req, res) => {
     if (status) conditions.push(eq(ordersTable.status, status));
     if (serviceType) conditions.push(eq(ordersTable.serviceType, serviceType));
     if (region) conditions.push(eq(ordersTable.region, region));
-    if (customerId) conditions.push(eq(ordersTable.customerId, parseInt(customerId)));
+
+    // Enforce ownership: customerId filter is only allowed for admins or the owner themselves.
+    if (customerId) {
+      const reqUser = req.user;
+      const isAdmin = reqUser?.role === "admin" || reqUser?.role === "superadmin";
+      if (isAdmin) {
+        conditions.push(eq(ordersTable.customerId, parseInt(customerId)));
+      } else if (reqUser) {
+        // Non-admin can only see their own orders — force their own ID
+        conditions.push(eq(ordersTable.customerId, reqUser.userId));
+      }
+      // Unauthenticated: customerId param is ignored (no private filtering)
+    }
 
     let query = db.select().from(ordersTable).$dynamic();
     if (conditions.length > 0) query = query.where(and(...conditions));

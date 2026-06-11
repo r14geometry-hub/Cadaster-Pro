@@ -3,7 +3,7 @@ import multer from "multer";
 import { db, usersTable, engineersTable, ordersTable, chatRoomsTable, messagesTable, complaintsTable, bidsTable, chatAttachmentsTable } from "@workspace/db";
 import { eq, and, ne, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
-import { ObjectStorageService } from "../lib/objectStorage";
+import { fileStorageProvider } from "../lib/fileStorage";
 
 const router = Router();
 const storage = multer.memoryStorage();
@@ -31,7 +31,6 @@ const upload = multer({
   },
 });
 
-const objectStorageService = new ObjectStorageService();
 
 function parseJson(s: string): unknown[] {
   try { return JSON.parse(s); } catch { return []; }
@@ -332,27 +331,12 @@ router.post("/chats/:roomId/upload", requireAuth, upload.single("file"), async (
 
     const file = req.file;
 
-    // Get a presigned upload URL from object storage
-    const uploadURL = await objectStorageService.getObjectEntityUploadURL();
-    const objectPath = objectStorageService.normalizeObjectEntityPath(uploadURL);
-
-    // Upload file buffer directly to the presigned URL
-    const uploadResponse = await fetch(uploadURL, {
-      method: "PUT",
-      headers: {
-        "Content-Type": file.mimetype,
-        "Content-Length": String(file.size),
-      },
-      body: file.buffer,
-    });
-
-    if (!uploadResponse.ok) {
-      req.log.error({ status: uploadResponse.status }, "Failed to upload to object storage");
-      res.status(500).json({ error: "Failed to store file" }); return;
-    }
-
-    // The serving URL is /api/storage + objectPath
-    const servingUrl = `/api/storage${objectPath}`;
+    // Save file via the configured storage provider (local disk or Replit)
+    const { objectPath, servingUrl } = await fileStorageProvider.upload(
+      file.buffer,
+      file.originalname,
+      file.mimetype,
+    );
 
     // Record the server-issued upload grant so the URL can be safely used in messages
     await db.insert(chatAttachmentsTable).values({
