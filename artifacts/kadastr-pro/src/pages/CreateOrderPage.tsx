@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ClipboardList, FileText, Send, Info } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const SERVICE_TYPES = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка", "Другое"];
 
@@ -193,7 +194,15 @@ export default function CreateOrderPage() {
                       <FormItem>
                         <FormLabel>Район / улус (необязательно)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Например: Хангаласский улус" {...field} data-testid="input-district" />
+                          <AddressAutocomplete
+                            value={field.value ?? ""}
+                            onChange={(v) => field.onChange(v)}
+                            level="district"
+                            region={form.watch("region")}
+                            placeholder="Начните вводить район..."
+                            freeText={false}
+                            data-testid="input-district"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -206,7 +215,15 @@ export default function CreateOrderPage() {
                       <FormItem>
                         <FormLabel>Населённый пункт (необязательно)</FormLabel>
                         <FormControl>
-                          <Input placeholder="Например: Покровск" {...field} data-testid="input-locality" />
+                          <AddressAutocomplete
+                            value={field.value ?? ""}
+                            onChange={(v) => field.onChange(v)}
+                            level="locality"
+                            region={form.watch("region")}
+                            placeholder="Начните вводить название..."
+                            freeText={false}
+                            data-testid="input-locality"
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -220,7 +237,15 @@ export default function CreateOrderPage() {
                     <FormItem>
                       <FormLabel>Адрес объекта (необязательно)</FormLabel>
                       <FormControl>
-                        <Input placeholder="Улица, дом, кадастровый номер..." {...field} data-testid="input-address" />
+                        <AddressAutocomplete
+                          value={field.value ?? ""}
+                          onChange={(v) => field.onChange(v)}
+                          level="address"
+                          region={form.watch("region")}
+                          placeholder="Улица, дом, кадастровый номер..."
+                          freeText={true}
+                          data-testid="input-address"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

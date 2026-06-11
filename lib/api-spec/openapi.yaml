@@ -19,8 +19,41 @@ tags:
   - name: stats
   - name: verification
   - name: storage
+  - name: address
 
 paths:
+  /address/suggest:
+    get:
+      operationId: suggestAddress
+      tags: [address]
+      summary: ФИАС address autocomplete suggestions
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: level
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [district, locality, address]
+        - name: region
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of suggestions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AddressSuggestion"
+
   /healthz:
     get:
       operationId: healthCheck
@@ -2080,6 +2113,13 @@ components:
         launchDate:
           type: string
           nullable: true
+        monetizationModel:
+          type: string
+          enum: [global, fixed, percent, hybrid, disabled]
+        fixedLeadFee:
+          type: integer
+        percentFee:
+          type: number
         engineerCount:
           type: integer
         orderCount:
@@ -2094,7 +2134,7 @@ components:
           type: integer
         avgRating:
           type: number
-      required: [id, code, name, federalDistrict, status, engineerCount, orderCount, activeOrderCount, completedOrderCount, leadCount, revenue, avgRating]
+      required: [id, code, name, federalDistrict, status, monetizationModel, fixedLeadFee, percentFee, engineerCount, orderCount, activeOrderCount, completedOrderCount, leadCount, revenue, avgRating]
 
     RegionUpdate:
       type: object
@@ -2111,6 +2151,29 @@ components:
         launchDate:
           type: string
           nullable: true
+        monetizationModel:
+          type: string
+          enum: [global, fixed, percent, hybrid, disabled]
+        fixedLeadFee:
+          type: integer
+        percentFee:
+          type: number
+
+    AddressSuggestion:
+      type: object
+      properties:
+        value:
+          type: string
+        district:
+          type: string
+          nullable: true
+        locality:
+          type: string
+          nullable: true
+        region:
+          type: string
+          nullable: true
+      required: [value]
 
     PlatformSettings:
       type: object

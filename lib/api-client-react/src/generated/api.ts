@@ -20,6 +20,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddressSuggestion,
   AdminEngineerList,
   AdminEngineerResult,
   AdminEngineerUpdate,
@@ -86,6 +87,7 @@ import type {
   Review,
   ReviewInput,
   StatsSummary,
+  SuggestAddressParams,
   UploadChatFileBody,
   UploadUrlRequest,
   UploadUrlResponse,
@@ -106,6 +108,90 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+export const getSuggestAddressUrl = (params: SuggestAddressParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/address/suggest?${stringifiedParams}` : `/api/address/suggest`
+}
+
+/**
+ * @summary ФИАС address autocomplete suggestions
+ */
+export const suggestAddress = async (params: SuggestAddressParams, options?: RequestInit): Promise<AddressSuggestion[]> => {
+
+  return customFetch<AddressSuggestion[]>(getSuggestAddressUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSuggestAddressQueryKey = (params?: SuggestAddressParams,) => {
+    return [
+    `/api/address/suggest`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSuggestAddressQueryOptions = <TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<unknown>>(params: SuggestAddressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSuggestAddressQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof suggestAddress>>> = ({ signal }) => suggestAddress(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SuggestAddressQueryResult = NonNullable<Awaited<ReturnType<typeof suggestAddress>>>
+export type SuggestAddressQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary ФИАС address autocomplete suggestions
+ */
+
+export function useSuggestAddress<TData = Awaited<ReturnType<typeof suggestAddress>>, TError = ErrorType<unknown>>(
+ params: SuggestAddressParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof suggestAddress>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSuggestAddressQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
 
 
 

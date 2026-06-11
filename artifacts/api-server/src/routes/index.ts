@@ -10,6 +10,7 @@ import chatRouter from "./chat";
 import statsRouter from "./stats";
 import adminRouter from "./admin";
 import storageRouter from "./storage";
+import addressRouter from "./address";
 
 const router: IRouter = Router();
 
@@ -24,5 +25,6 @@ router.use(chatRouter);
 router.use(statsRouter);
 router.use(adminRouter);
 router.use(storageRouter);
+router.use(addressRouter);
 
 export default router;

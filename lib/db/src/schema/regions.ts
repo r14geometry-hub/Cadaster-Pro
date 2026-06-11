@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, integer } from "drizzle-orm/pg-core";
+import { pgTable, serial, varchar, text, timestamp, integer, real } from "drizzle-orm/pg-core";
 
 export const regionsTable = pgTable("regions", {
   id: serial("id").primaryKey(),
@@ -10,6 +10,9 @@ export const regionsTable = pgTable("regions", {
   features: text("features"),
   launchDate: timestamp("launch_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  monetizationModel: varchar("monetization_model", { length: 20 }).notNull().default("global"),
+  fixedLeadFee: integer("fixed_lead_fee").notNull().default(0),
+  percentFee: real("percent_fee").notNull().default(0),
 });
 
 export type Region = typeof regionsTable.$inferSelect;

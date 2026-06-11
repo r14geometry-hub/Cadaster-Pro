@@ -434,6 +434,17 @@ export const AdminRegionItemStatus = {
   closed: 'closed',
 } as const;
 
+export type AdminRegionItemMonetizationModel = typeof AdminRegionItemMonetizationModel[keyof typeof AdminRegionItemMonetizationModel];
+
+
+export const AdminRegionItemMonetizationModel = {
+  global: 'global',
+  fixed: 'fixed',
+  percent: 'percent',
+  hybrid: 'hybrid',
+  disabled: 'disabled',
+} as const;
+
 export interface AdminRegionItem {
   id: number;
   code: string;
@@ -443,6 +454,9 @@ export interface AdminRegionItem {
   comment?: string | null;
   features?: string | null;
   launchDate?: string | null;
+  monetizationModel: AdminRegionItemMonetizationModel;
+  fixedLeadFee: number;
+  percentFee: number;
   engineerCount: number;
   orderCount: number;
   activeOrderCount: number;
@@ -462,11 +476,32 @@ export const RegionUpdateStatus = {
   closed: 'closed',
 } as const;
 
+export type RegionUpdateMonetizationModel = typeof RegionUpdateMonetizationModel[keyof typeof RegionUpdateMonetizationModel];
+
+
+export const RegionUpdateMonetizationModel = {
+  global: 'global',
+  fixed: 'fixed',
+  percent: 'percent',
+  hybrid: 'hybrid',
+  disabled: 'disabled',
+} as const;
+
 export interface RegionUpdate {
   status?: RegionUpdateStatus;
   comment?: string | null;
   features?: string | null;
   launchDate?: string | null;
+  monetizationModel?: RegionUpdateMonetizationModel;
+  fixedLeadFee?: number;
+  percentFee?: number;
+}
+
+export interface AddressSuggestion {
+  value: string;
+  district?: string | null;
+  locality?: string | null;
+  region?: string | null;
 }
 
 /**
@@ -660,6 +695,21 @@ export interface ReverifyResult {
   isValid: boolean;
   message: string;
 }
+
+export type SuggestAddressParams = {
+query: string;
+level?: SuggestAddressLevel;
+region?: string;
+};
+
+export type SuggestAddressLevel = typeof SuggestAddressLevel[keyof typeof SuggestAddressLevel];
+
+
+export const SuggestAddressLevel = {
+  district: 'district',
+  locality: 'locality',
+  address: 'address',
+} as const;
 
 export type Register400 = {
   error: string;

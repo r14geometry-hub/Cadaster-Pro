@@ -9,6 +9,24 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary ФИАС address autocomplete suggestions
+ */
+export const SuggestAddressQueryParams = zod.object({
+  "query": zod.coerce.string(),
+  "level": zod.enum(['district', 'locality', 'address']).optional(),
+  "region": zod.coerce.string().optional()
+})
+
+export const SuggestAddressResponseItem = zod.object({
+  "value": zod.string(),
+  "district": zod.string().nullish(),
+  "locality": zod.string().nullish(),
+  "region": zod.string().nullish()
+})
+export const SuggestAddressResponse = zod.array(SuggestAddressResponseItem)
+
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -1699,6 +1717,9 @@ export const ListAdminRegionsResponseItem = zod.object({
   "comment": zod.string().nullish(),
   "features": zod.string().nullish(),
   "launchDate": zod.string().nullish(),
+  "monetizationModel": zod.enum(['global', 'fixed', 'percent', 'hybrid', 'disabled']),
+  "fixedLeadFee": zod.number(),
+  "percentFee": zod.number(),
   "engineerCount": zod.number(),
   "orderCount": zod.number(),
   "activeOrderCount": zod.number(),
@@ -1721,7 +1742,10 @@ export const UpdateAdminRegionBody = zod.object({
   "status": zod.enum(['active', 'limited', 'paused', 'closed']).optional(),
   "comment": zod.string().nullish(),
   "features": zod.string().nullish(),
-  "launchDate": zod.string().nullish()
+  "launchDate": zod.string().nullish(),
+  "monetizationModel": zod.enum(['global', 'fixed', 'percent', 'hybrid', 'disabled']).optional(),
+  "fixedLeadFee": zod.number().optional(),
+  "percentFee": zod.number().optional()
 })
 
 export const UpdateAdminRegionResponse = zod.object({

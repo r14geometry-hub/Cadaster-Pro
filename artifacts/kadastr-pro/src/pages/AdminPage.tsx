@@ -1129,6 +1129,14 @@ const STATUS_COLORS: Record<string, string> = {
   closed: "bg-red-100 text-red-800",
 };
 
+const MONETIZATION_LABELS: Record<string, string> = {
+  global: "Глобальная",
+  fixed: "Фиксированная",
+  percent: "Процент",
+  hybrid: "Гибридная",
+  disabled: "Отключена",
+};
+
 function GeographyTab() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -1138,6 +1146,9 @@ function GeographyTab() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editStatus, setEditStatus] = useState("");
   const [editComment, setEditComment] = useState("");
+  const [editMonetizationModel, setEditMonetizationModel] = useState("global");
+  const [editFixedLeadFee, setEditFixedLeadFee] = useState("0");
+  const [editPercentFee, setEditPercentFee] = useState("0");
   const [filterDistrict, setFilterDistrict] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -1153,10 +1164,13 @@ function GeographyTab() {
     return true;
   });
 
-  function startEdit(r: { id: number; status: string; comment?: string | null }) {
+  function startEdit(r: { id: number; status: string; comment?: string | null; monetizationModel: string; fixedLeadFee: number; percentFee: number }) {
     setEditingId(r.id);
     setEditStatus(r.status);
     setEditComment(r.comment ?? "");
+    setEditMonetizationModel(r.monetizationModel ?? "global");
+    setEditFixedLeadFee(String(r.fixedLeadFee ?? 0));
+    setEditPercentFee(String(r.percentFee ?? 0));
   }
 
   function cancelEdit() {
@@ -1165,7 +1179,16 @@ function GeographyTab() {
 
   async function saveEdit(id: number) {
     try {
-      await updateRegion.mutateAsync({ regionId: id, data: { status: editStatus as "active" | "limited" | "paused" | "closed", comment: editComment || null } });
+      await updateRegion.mutateAsync({
+        regionId: id,
+        data: {
+          status: editStatus as "active" | "limited" | "paused" | "closed",
+          comment: editComment || null,
+          monetizationModel: editMonetizationModel as "global" | "fixed" | "percent" | "hybrid" | "disabled",
+          fixedLeadFee: Number(editFixedLeadFee) || 0,
+          percentFee: Number(editPercentFee) || 0,
+        },
+      });
       queryClient.invalidateQueries({ queryKey: getListAdminRegionsQueryKey() });
       toast({ title: "Сохранено" });
       setEditingId(null);
@@ -1242,6 +1265,7 @@ function GeographyTab() {
                     <TableHead className="text-xs">Субъект РФ</TableHead>
                     <TableHead className="text-xs">Федеральный округ</TableHead>
                     <TableHead className="text-xs">Статус</TableHead>
+                    <TableHead className="text-xs">Монетизация</TableHead>
                     <TableHead className="text-xs text-right">Инженеры</TableHead>
                     <TableHead className="text-xs text-right">Заявки</TableHead>
                     <TableHead className="text-xs text-right">В работе</TableHead>
@@ -1270,6 +1294,57 @@ function GeographyTab() {
                           <Badge className={`text-xs ${STATUS_COLORS[r.status] ?? ""}`}>
                             {STATUS_LABELS[r.status] ?? r.status}
                           </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {editingId === r.id ? (
+                          <div className="space-y-1 min-w-[180px]">
+                            <Select value={editMonetizationModel} onValueChange={setEditMonetizationModel}>
+                              <SelectTrigger className="h-7 text-xs w-full" data-testid={`select-region-monetization-${r.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(MONETIZATION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                            {(editMonetizationModel === "fixed" || editMonetizationModel === "hybrid") && (
+                              <Input
+                                value={editFixedLeadFee}
+                                onChange={(e) => setEditFixedLeadFee(e.target.value)}
+                                placeholder="Фикс. плата, ₽"
+                                className="h-7 text-xs"
+                                type="number"
+                                min="0"
+                                data-testid={`input-region-fixed-fee-${r.id}`}
+                              />
+                            )}
+                            {(editMonetizationModel === "percent" || editMonetizationModel === "hybrid") && (
+                              <Input
+                                value={editPercentFee}
+                                onChange={(e) => setEditPercentFee(e.target.value)}
+                                placeholder="Процент, %"
+                                className="h-7 text-xs"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                data-testid={`input-region-percent-fee-${r.id}`}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-muted-foreground">
+                            <span className="font-medium text-foreground">{MONETIZATION_LABELS[r.monetizationModel] ?? r.monetizationModel}</span>
+                            {r.monetizationModel === "fixed" && r.fixedLeadFee > 0 && (
+                              <span className="block">{r.fixedLeadFee} ₽/лид</span>
+                            )}
+                            {r.monetizationModel === "percent" && r.percentFee > 0 && (
+                              <span className="block">{r.percentFee}%</span>
+                            )}
+                            {r.monetizationModel === "hybrid" && (
+                              <span className="block">{r.fixedLeadFee} ₽ + {r.percentFee}%</span>
+                            )}
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-right">{r.engineerCount}</TableCell>

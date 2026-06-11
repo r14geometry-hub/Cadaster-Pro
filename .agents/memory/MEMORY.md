@@ -7,3 +7,5 @@
 - [DB migrations](db-migrations.md) — drizzle-kit push fails non-interactively (unique constraint TTY prompt); use executeSql() code_execution tool for all schema changes.
 - [Territory matching](territory-match.md) — engineer serviceAreas JSON; forEngineer query param on GET /orders; locality > district > region priority; notifications filtered by territory.
 - [Region enforcement](region-enforcement.md) — 85 RF subjects in regionsTable; active/limited/paused/closed blocks new orders+bids; seedRegionsIfEmpty() runs on startup.
+- [ФИАС address autocomplete](fias-autocomplete.md) — GET /api/address/suggest; mock data for 13 regions; switches to Dadata if DADATA_API_KEY set; AddressAutocomplete component.
+- [Regional monetization](regional-monetization.md) — monetization_model/fixed_lead_fee/percent_fee columns on regions table; models: global/fixed/percent/hybrid/disabled; PATCH /admin/regions accepts these fields (superadmin only).

@@ -37,6 +37,7 @@ import {
   ClipboardList, MessageSquare, ShieldCheck, CheckCircle2, Sparkles, AlertTriangle, Wallet, Bell, Phone, Mail,
   MapPin, Plus, Trash2, Globe,
 } from "lucide-react";
+import AddressAutocomplete from "@/components/AddressAutocomplete";
 
 const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
 const SPECIALIZATIONS = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка"];
@@ -702,18 +703,22 @@ export default function EngineerDashboardPage() {
                       </Select>
                       {newAreaRegion && (
                         <div className="grid grid-cols-2 gap-2">
-                          <Input
+                          <AddressAutocomplete
                             value={newAreaDistrict}
-                            onChange={(e) => setNewAreaDistrict(e.target.value)}
+                            onChange={(v) => setNewAreaDistrict(v)}
+                            level="district"
+                            region={newAreaRegion}
                             placeholder="Район / улус (необяз.)"
-                            className="h-8 text-sm"
+                            freeText={false}
                             data-testid="input-new-area-district"
                           />
-                          <Input
+                          <AddressAutocomplete
                             value={newAreaLocality}
-                            onChange={(e) => setNewAreaLocality(e.target.value)}
+                            onChange={(v) => setNewAreaLocality(v)}
+                            level="locality"
+                            region={newAreaRegion}
                             placeholder="Нас. пункт (необяз.)"
-                            className="h-8 text-sm"
+                            freeText={false}
                             data-testid="input-new-area-locality"
                           />
                         </div>

@@ -824,11 +824,16 @@ router.get("/admin/regions", requireAuth, requireRole("superadmin"), async (req,
 router.patch("/admin/regions/:regionId", requireAuth, requireRole("superadmin"), async (req, res) => {
   try {
     const regionId = parseInt(req.params.regionId as string);
-    const { status, comment, features, launchDate } = req.body;
+    const { status, comment, features, launchDate, monetizationModel, fixedLeadFee, percentFee } = req.body;
 
     const VALID_STATUSES = ["active", "limited", "paused", "closed"];
     if (status !== undefined && !VALID_STATUSES.includes(status)) {
       res.status(400).json({ error: `Недопустимый статус. Допустимые: ${VALID_STATUSES.join(", ")}` });
+      return;
+    }
+    const VALID_MODELS = ["global", "fixed", "percent", "hybrid", "disabled"];
+    if (monetizationModel !== undefined && !VALID_MODELS.includes(monetizationModel)) {
+      res.status(400).json({ error: `Недопустимая модель монетизации. Допустимые: ${VALID_MODELS.join(", ")}` });
       return;
     }
 
@@ -837,6 +842,9 @@ router.patch("/admin/regions/:regionId", requireAuth, requireRole("superadmin"),
     if (comment !== undefined) updates.comment = comment || null;
     if (features !== undefined) updates.features = features || null;
     if (launchDate !== undefined) updates.launchDate = launchDate ? new Date(launchDate) : null;
+    if (monetizationModel !== undefined) updates.monetizationModel = monetizationModel;
+    if (fixedLeadFee !== undefined) updates.fixedLeadFee = Number(fixedLeadFee);
+    if (percentFee !== undefined) updates.percentFee = Number(percentFee);
 
     const [updated] = await db.update(regionsTable)
       .set(updates)

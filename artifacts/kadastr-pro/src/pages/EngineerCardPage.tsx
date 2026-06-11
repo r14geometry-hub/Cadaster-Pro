@@ -150,15 +150,25 @@ export default function EngineerCardPage() {
         <div className="container mx-auto px-4 py-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Avatar */}
-            <div className="relative flex-shrink-0">
-              <Avatar className="w-24 h-24 ring-4 ring-white/20">
-                <AvatarImage src={engineer.user.avatarUrl ?? undefined} alt={engineer.user.name} />
-                <AvatarFallback className="bg-gradient-to-br from-primary/40 to-primary/60 text-white font-bold text-2xl">
-                  {engineer.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              {engineer.isOnline && (
-                <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-gray-900 rounded-full" />
+            <div className="relative flex-shrink-0 flex flex-col items-center gap-1.5">
+              <div className="relative">
+                <Avatar className="w-24 h-24 ring-4 ring-white/20">
+                  <AvatarImage src={engineer.user.avatarUrl ?? undefined} alt={engineer.user.name} />
+                  <AvatarFallback className="bg-gradient-to-br from-primary/40 to-primary/60 text-white font-bold text-2xl">
+                    {engineer.user.name.split(" ").map((n: string) => n[0]).slice(0, 2).join("").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                {engineer.isOnline && (
+                  <span className="absolute bottom-1 right-1 w-4 h-4 bg-green-500 border-2 border-gray-900 rounded-full" />
+                )}
+              </div>
+              {rosreestrCheckedAt && (
+                <div className="text-center">
+                  <p className="text-[10px] text-gray-400 leading-tight">Проверен</p>
+                  <p className="text-[10px] text-gray-300 leading-tight font-medium">
+                    {new Date(rosreestrCheckedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                </div>
               )}
             </div>
 
