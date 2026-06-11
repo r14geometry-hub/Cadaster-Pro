@@ -24,7 +24,8 @@ export const RegisterBody = zod.object({
   "email": zod.string(),
   "password": zod.string(),
   "role": zod.string(),
-  "phone": zod.string().optional()
+  "phone": zod.string().optional(),
+  "attestatNumber": zod.string().optional()
 })
 
 
@@ -124,7 +125,15 @@ export const ListEngineersResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 })),
   "total": zod.number(),
   "page": zod.number(),
@@ -172,7 +181,15 @@ export const ListTopEngineersResponseItem = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 })
 export const ListTopEngineersResponse = zod.array(ListTopEngineersResponseItem)
 
@@ -252,7 +269,15 @@ export const GetMyEngineerProfileResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 })
 
 
@@ -316,7 +341,15 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 })
 
 
@@ -378,7 +411,15 @@ export const GetEngineerResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 })
 
 
@@ -681,7 +722,15 @@ export const ListOrderBidsResponseItem = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
@@ -782,7 +831,15 @@ export const UpdateBidResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
@@ -863,7 +920,15 @@ export const ListEngineerBidsResponseItem = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 }),
   "message": zod.string(),
   "price": zod.number().nullish(),
@@ -992,7 +1057,15 @@ export const ListChatsResponseItem = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 }),
   "lastMessage": zod.string().nullish(),
   "lastMessageAt": zod.string().nullish(),
@@ -1085,7 +1158,15 @@ export const CreateChatRoomResponse = zod.object({
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
-  "createdAt": zod.string()
+  "createdAt": zod.string(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrStatus": zod.string().nullish(),
+  "sroName": zod.string().nullish(),
+  "rosreestrCheckedAt": zod.string().nullish(),
+  "rosreestrWorksCount": zod.number().nullish(),
+  "rosreestrRejectionsCount": zod.number().nullish(),
+  "rosreestrSuspensionsCount": zod.number().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish()
 }),
   "lastMessage": zod.string().nullish(),
   "lastMessageAt": zod.string().nullish(),
@@ -1436,6 +1517,44 @@ export const UpdateAdminEngineerResponse = zod.object({
   "expiresAt": zod.string(),
   "createdAt": zod.string()
 }).optional()
+})
+
+
+/**
+ * @summary List all verification logs (admin)
+ */
+export const ListAdminVerificationLogsQueryParams = zod.object({
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminVerificationLogsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "engineerId": zod.number().nullish(),
+  "engineerName": zod.string().nullish(),
+  "engineerEmail": zod.string().nullish(),
+  "attestatNumber": zod.string(),
+  "result": zod.string(),
+  "failureReason": zod.string().nullish(),
+  "rawSnapshot": zod.string().nullish(),
+  "checkedAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Re-run Rosreestr verification for an engineer (admin)
+ */
+export const ReverifyEngineerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReverifyEngineerResponse = zod.object({
+  "isValid": zod.boolean(),
+  "message": zod.string()
 })
 
 

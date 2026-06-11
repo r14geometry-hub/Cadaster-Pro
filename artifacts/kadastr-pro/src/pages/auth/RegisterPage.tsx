@@ -10,7 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useRegister } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { MapPin, User, HardHat } from "lucide-react";
+import { MapPin, User, HardHat, ShieldCheck } from "lucide-react";
 
 const schema = z.object({
   name: z.string().min(2, "Минимум 2 символа"),
@@ -18,6 +18,7 @@ const schema = z.object({
   password: z.string().min(6, "Минимум 6 символов"),
   role: z.enum(["customer", "engineer"]),
   phone: z.string().optional(),
+  attestatNumber: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -29,8 +30,10 @@ export default function RegisterPage() {
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { name: "", email: "", password: "", role: "customer", phone: "" },
+    defaultValues: { name: "", email: "", password: "", role: "customer", phone: "", attestatNumber: "" },
   });
+
+  const role = form.watch("role");
 
   const registerMutation = useRegister({
     mutation: {
@@ -47,7 +50,13 @@ export default function RegisterPage() {
   });
 
   const onSubmit = (values: FormValues) => {
-    registerMutation.mutate({ data: { ...values, phone: values.phone || undefined } });
+    registerMutation.mutate({
+      data: {
+        ...values,
+        phone: values.phone || undefined,
+        attestatNumber: values.role === "engineer" ? (values.attestatNumber || undefined) : undefined,
+      },
+    });
   };
 
   return (
@@ -102,6 +111,33 @@ export default function RegisterPage() {
                     </FormItem>
                   )}
                 />
+
+                {role === "engineer" && (
+                  <FormField
+                    control={form.control}
+                    name="attestatNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1.5">
+                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                          Номер аттестата Росреестра
+                        </FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="напр. 77-13-2023001"
+                            {...field}
+                            data-testid="input-attestat-number"
+                          />
+                        </FormControl>
+                        <p className="text-xs text-muted-foreground">
+                          Обязательно для инженеров. Должен быть действующим с активным членством в СРО.
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+
                 <FormField
                   control={form.control}
                   name="name"

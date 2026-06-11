@@ -12,4 +12,5 @@ export interface RegisterInput {
   password: string;
   role: string;
   phone?: string;
+  attestatNumber?: string;
 }

@@ -22,11 +22,13 @@ import {
   useUpdateAdminEngineer,
   useGetAdminSettings, getGetAdminSettingsQueryKey,
   useUpdateAdminSettings,
+  useListAdminVerificationLogs, getListAdminVerificationLogsQueryKey,
+  useReverifyEngineer,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, ClipboardList, CheckCircle, Shield, Sparkles, Wallet, AlertTriangle } from "lucide-react";
+import { Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck, RefreshCw } from "lucide-react";
 
 const DEBT_LIMIT = 3000;
 
@@ -70,9 +72,10 @@ export default function AdminPage() {
     { query: { enabled: user?.role === "admin", queryKey: getListAdminEngineersQueryKey({}) } }
   );
 
-  const { data: platformSettings, isLoading: settingsLoading } = useGetAdminSettings({
-    query: { enabled: user?.role === "admin", queryKey: getGetAdminSettingsQueryKey() },
-  });
+  const { data: verificationLogs, isLoading: logsLoading } = useListAdminVerificationLogs(
+    {},
+    { query: { enabled: user?.role === "admin", queryKey: getListAdminVerificationLogsQueryKey({}) } }
+  );
 
   const updateUser = useUpdateAdminUser({
     mutation: {
@@ -113,13 +116,17 @@ export default function AdminPage() {
     },
   });
 
-  const updateSettings = useUpdateAdminSettings({
+  const reverify = useReverifyEngineer({
     mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetAdminSettingsQueryKey() });
-        setEditingSettings({});
-        toast({ title: "Настройки сохранены" });
+      onSuccess: (result) => {
+        queryClient.invalidateQueries({ queryKey: getListAdminVerificationLogsQueryKey({}) });
+        toast({
+          title: result.isValid ? "Верификация пройдена" : "Верификация не пройдена",
+          description: result.message,
+          variant: result.isValid ? "default" : "destructive",
+        });
       },
+      onError: () => toast({ title: "Ошибка", description: "Не удалось повторить проверку", variant: "destructive" }),
     },
   });
 
@@ -192,7 +199,7 @@ export default function AdminPage() {
           <TabsTrigger value="orders" data-testid="tab-admin-orders">Заявки</TabsTrigger>
           <TabsTrigger value="leads" data-testid="tab-admin-leads">Учёт лидов</TabsTrigger>
           <TabsTrigger value="engineers-pro" data-testid="tab-admin-engineers-pro">PRO и Буст</TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-admin-settings">Настройки</TabsTrigger>
+          <TabsTrigger value="verification" data-testid="tab-admin-verification">Логи проверок</TabsTrigger>
         </TabsList>
 
         {/* Users */}
@@ -566,79 +573,78 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Platform Settings */}
-        <TabsContent value="settings">
+        {/* Rosreestr Verification Logs */}
+        <TabsContent value="verification">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Настройки платформы</CardTitle>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" /> Логи проверок Росреестра
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              {settingsLoading ? (
-                <Skeleton className="h-48 rounded" />
-              ) : (
-                <div className="space-y-6 max-w-md">
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Лимиты</h3>
-                    <div className="flex items-center justify-between gap-4">
-                      <label className="text-sm font-medium">Порог задолженности (₽)</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-32 text-right"
-                        defaultValue={platformSettings?.debt_limit ?? "3000"}
-                        onChange={(e) => setEditingSettings((s) => ({ ...s, debt_limit: e.target.value }))}
-                        data-testid="input-debt-limit"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">Цены буста (₽)</h3>
-                    <div className="flex items-center justify-between gap-4">
-                      <label className="text-sm font-medium">7 дней</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-32 text-right"
-                        defaultValue={platformSettings?.boost_price_7d ?? "500"}
-                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_7d: e.target.value }))}
-                        data-testid="input-boost-price-7d"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <label className="text-sm font-medium">30 дней</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-32 text-right"
-                        defaultValue={platformSettings?.boost_price_30d ?? "1500"}
-                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_30d: e.target.value }))}
-                        data-testid="input-boost-price-30d"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <label className="text-sm font-medium">90 дней</label>
-                      <Input
-                        type="number"
-                        min={0}
-                        className="w-32 text-right"
-                        defaultValue={platformSettings?.boost_price_90d ?? "3500"}
-                        onChange={(e) => setEditingSettings((s) => ({ ...s, boost_price_90d: e.target.value }))}
-                        data-testid="input-boost-price-90d"
-                      />
-                    </div>
-                  </div>
-
-                  <Button
-                    onClick={() => {
-                      if (Object.keys(editingSettings).length === 0) return;
-                      updateSettings.mutate({ data: { settings: editingSettings } });
-                    }}
-                    disabled={updateSettings.isPending || Object.keys(editingSettings).length === 0}
-                    data-testid="button-save-settings"
-                  >
-                    {updateSettings.isPending ? "Сохранение..." : "Сохранить"}
-                  </Button>
+              {logsLoading ? <Skeleton className="h-64 rounded" /> : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Дата</TableHead>
+                        <TableHead>Инженер</TableHead>
+                        <TableHead>Номер аттестата</TableHead>
+                        <TableHead>Результат</TableHead>
+                        <TableHead>Причина отказа</TableHead>
+                        <TableHead>Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {verificationLogs?.items.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                            Логов проверок пока нет
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {verificationLogs?.items.map((log) => (
+                        <TableRow key={log.id} data-testid={`row-vlog-${log.id}`}>
+                          <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                            {new Date(log.checkedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{log.engineerName ?? "—"}</p>
+                              {log.engineerEmail && <p className="text-xs text-muted-foreground">{log.engineerEmail}</p>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">{log.attestatNumber}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={log.result === "pass" ? "default" : "destructive"}
+                              className={log.result === "pass" ? "bg-emerald-100 text-emerald-800 border-emerald-200" : ""}
+                              data-testid={`badge-vlog-result-${log.id}`}
+                            >
+                              {log.result === "pass" ? "Пройдена" : "Не пройдена"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground text-sm max-w-xs">
+                            <span className="line-clamp-2">{log.failureReason ?? "—"}</span>
+                          </TableCell>
+                          <TableCell>
+                            {log.engineerId != null && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="gap-1.5"
+                                onClick={() => reverify.mutate({ id: log.engineerId! })}
+                                disabled={reverify.isPending}
+                                data-testid={`button-reverify-${log.engineerId}`}
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" /> Перепроверить
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>

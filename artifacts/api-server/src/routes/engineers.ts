@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable } from "@workspace/db";
+import { db, usersTable, engineersTable, profileBoostsTable, leadsTable, platformSettingsTable, verificationLogsTable } from "@workspace/db";
 import { eq, and, gte, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
+import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 
 const router = Router();
 
@@ -27,6 +28,14 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     isPro: activePro,
     proExpiresAt: eng.proExpiresAt ?? null,
     debtAmount: eng.debtAmount ?? 0,
+    attestatNumber: eng.attestatNumber ?? null,
+    rosreestrStatus: eng.rosreestrStatus ?? null,
+    sroName: eng.sroName ?? null,
+    rosreestrCheckedAt: eng.rosreestrCheckedAt ?? null,
+    rosreestrWorksCount: eng.rosreestrWorksCount ?? null,
+    rosreestrRejectionsCount: eng.rosreestrRejectionsCount ?? null,
+    rosreestrSuspensionsCount: eng.rosreestrSuspensionsCount ?? null,
+    rosreestrRejectionRate: eng.rosreestrRejectionRate ?? null,
   };
 }
 
@@ -200,13 +209,94 @@ router.post("/engineers/verify", requireAuth, async (req, res) => {
   try {
     const { registryNumber } = req.body;
     if (!registryNumber) { res.status(400).json({ error: "registryNumber required" }); return; }
+
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
-    const isValid = registryNumber.length >= 5;
-    if (isValid && eng) {
-      await db.update(engineersTable).set({ registryNumber, isVerified: true }).where(eq(engineersTable.id, eng.id));
+    if (!eng) { res.status(404).json({ error: "Engineer profile not found" }); return; }
+
+    const record = await rosreestrProvider.lookupByAttestat(registryNumber);
+
+    if (!record) {
+      await db.insert(verificationLogsTable).values({
+        engineerId: eng.id,
+        attestatNumber: registryNumber,
+        result: "fail",
+        failureReason: "Номер аттестата не найден в реестре Росреестра",
+        rawSnapshot: null,
+      });
+      res.status(400).json({
+        isValid: false,
+        engineerName: null,
+        message: "Номер аттестата не найден в реестре Росреестра. Проверьте правильность номера.",
+      });
+      return;
     }
-    const [user] = await db.select().from(usersTable).where(eq(usersTable.id, req.user!.userId)).limit(1);
-    res.json({ isValid, engineerName: isValid ? user.name : null, message: isValid ? "Номер подтверждён в реестре Росреестра" : "Номер не найден в реестре" });
+
+    if (record.status !== "active") {
+      const statusLabel = record.status === "suspended" ? "приостановлен" : "аннулирован";
+      const reason = `Статус инженера в реестре: ${statusLabel}`;
+      await db.insert(verificationLogsTable).values({
+        engineerId: eng.id,
+        attestatNumber: registryNumber,
+        result: "fail",
+        failureReason: reason,
+        rawSnapshot: JSON.stringify(record),
+      });
+      res.status(400).json({
+        isValid: false,
+        engineerName: record.engineerName,
+        message: `Верификация невозможна: аттестат кадастрового инженера ${statusLabel}. Для получения доступа необходимо восстановить действующий статус в Росреестре.`,
+      });
+      return;
+    }
+
+    if (record.sroStatus !== "active") {
+      const reason = "Членство в СРО не является действующим";
+      await db.insert(verificationLogsTable).values({
+        engineerId: eng.id,
+        attestatNumber: registryNumber,
+        result: "fail",
+        failureReason: reason,
+        rawSnapshot: JSON.stringify(record),
+      });
+      res.status(400).json({
+        isValid: false,
+        engineerName: record.engineerName,
+        message: `Верификация невозможна: членство в СРО «${record.sroName}» не является действующим. Ответственность инженера должна быть обеспечена компенсационным фондом действующей СРО.`,
+      });
+      return;
+    }
+
+    const worksCount = record.worksCount;
+    const rejectionRate = worksCount > 0 ? record.rejectionsCount / worksCount : 0;
+    const newRating = computeRatingFromRosreestr(record);
+
+    await db.update(engineersTable).set({
+      registryNumber,
+      attestatNumber: registryNumber,
+      isVerified: true,
+      rosreestrStatus: record.status,
+      sroName: record.sroName,
+      rosreestrCheckedAt: new Date(),
+      rosreestrWorksCount: record.worksCount,
+      rosreestrRejectionsCount: record.rejectionsCount,
+      rosreestrSuspensionsCount: record.suspensionsCount,
+      rosreestrRejectionRate: Math.round(rejectionRate * 1000) / 1000,
+      rating: newRating,
+    }).where(eq(engineersTable.id, eng.id));
+
+    await db.insert(verificationLogsTable).values({
+      engineerId: eng.id,
+      attestatNumber: registryNumber,
+      result: "pass",
+      failureReason: null,
+      rawSnapshot: JSON.stringify(record),
+    });
+
+    res.json({
+      isValid: true,
+      engineerName: record.engineerName,
+      message: `Верификация пройдена. Инженер ${record.engineerName} найден в реестре Росреестра. СРО: ${record.sroName}.`,
+    });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

@@ -40,6 +40,7 @@ export interface RegisterInput {
   password: string;
   role: string;
   phone?: string;
+  attestatNumber?: string;
 }
 
 export interface LoginInput {
@@ -96,6 +97,22 @@ export interface Engineer {
   proExpiresAt?: string | null;
   debtAmount: number;
   createdAt: string;
+  /** @nullable */
+  attestatNumber?: string | null;
+  /** @nullable */
+  rosreestrStatus?: string | null;
+  /** @nullable */
+  sroName?: string | null;
+  /** @nullable */
+  rosreestrCheckedAt?: string | null;
+  /** @nullable */
+  rosreestrWorksCount?: number | null;
+  /** @nullable */
+  rosreestrRejectionsCount?: number | null;
+  /** @nullable */
+  rosreestrSuspensionsCount?: number | null;
+  /** @nullable */
+  rosreestrRejectionRate?: number | null;
 }
 
 export interface EngineerList {
@@ -391,6 +408,35 @@ export interface AdminEngineerResult {
   activeBoost?: ProfileBoost;
 }
 
+export interface VerificationLog {
+  id: number;
+  /** @nullable */
+  engineerId?: number | null;
+  /** @nullable */
+  engineerName?: string | null;
+  /** @nullable */
+  engineerEmail?: string | null;
+  attestatNumber: string;
+  result: string;
+  /** @nullable */
+  failureReason?: string | null;
+  /** @nullable */
+  rawSnapshot?: string | null;
+  checkedAt: string;
+}
+
+export interface VerificationLogList {
+  items: VerificationLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ReverifyResult {
+  isValid: boolean;
+  message: string;
+}
+
 export type ListEngineersParams = {
 region?: string;
 specialization?: string;
@@ -430,6 +476,10 @@ page?: number;
 };
 
 export type ListAdminEngineersParams = {
+page?: number;
+};
+
+export type ListAdminVerificationLogsParams = {
 page?: number;
 };
 

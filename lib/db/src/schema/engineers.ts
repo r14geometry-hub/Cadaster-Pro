@@ -24,6 +24,14 @@ export const engineersTable = pgTable("engineers", {
   proExpiresAt: timestamp("pro_expires_at"),
   debtAmount: integer("debt_amount").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  attestatNumber: varchar("attestat_number", { length: 100 }),
+  rosreestrStatus: varchar("rosreestr_status", { length: 50 }),
+  sroName: text("sro_name"),
+  rosreestrCheckedAt: timestamp("rosreestr_checked_at"),
+  rosreestrWorksCount: integer("rosreestr_works_count"),
+  rosreestrRejectionsCount: integer("rosreestr_rejections_count"),
+  rosreestrSuspensionsCount: integer("rosreestr_suspensions_count"),
+  rosreestrRejectionRate: real("rosreestr_rejection_rate"),
 });
 
 export const insertEngineerSchema = createInsertSchema(engineersTable).omit({ id: true, createdAt: true });

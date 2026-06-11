@@ -68,6 +68,11 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
       .where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(403).json({ error: "Only engineers can bid" }); return; }
 
+    if (!eng.isVerified) {
+      res.status(403).json({ error: "Только верифицированные кадастровые инженеры могут откликаться на заявки. Пройдите проверку по реестру Росреестра в личном кабинете." });
+      return;
+    }
+
     // Fetch configurable debt limit
     const debtLimitStr = await getSetting("debt_limit", String(DEFAULT_DEBT_LIMIT));
     const debtLimit = parseInt(debtLimitStr) || DEFAULT_DEBT_LIMIT;

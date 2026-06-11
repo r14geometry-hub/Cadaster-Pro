@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable } from "@workspace/db";
-import { eq, and, sql, gte } from "drizzle-orm";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable } from "@workspace/db";
+import { eq, and, sql, gte, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
+import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 
 const router = Router();
 
@@ -175,7 +176,6 @@ router.get("/admin/leads", requireAuth, requireRole("admin"), async (req, res) =
     const all = await query.orderBy(sql`${leadsTable.createdAt} desc`).limit(limit).offset(offset);
     const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(leadsTable);
 
-    // Enrich with engineer name
     const enriched = await Promise.all(all.map(async (lead) => {
       const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, lead.engineerId)).limit(1);
       const [user] = eng ? await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1) : [null];
@@ -226,7 +226,6 @@ router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (r
   }
 });
 
-// Per-engineer debt summary
 router.get("/admin/leads/summary", requireAuth, requireRole("admin"), async (req, res) => {
   try {
     const engineers = await db.select().from(engineersTable).orderBy(sql`${engineersTable.debtAmount} desc`);
@@ -330,6 +329,114 @@ router.patch("/admin/engineers/:engineerId", requireAuth, requireRole("admin"), 
       debtAmount: eng.debtAmount ?? 0,
       activeBoost: activeBoosts[activeBoosts.length - 1] ?? null,
     });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Rosreestr Verification Logs ───────────────────────────────────────────────
+
+router.get("/admin/verification-logs", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const { page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 30;
+    const offset = (pageNum - 1) * limit;
+
+    const logs = await db.select().from(verificationLogsTable)
+      .orderBy(desc(verificationLogsTable.checkedAt))
+      .limit(limit)
+      .offset(offset);
+
+    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(verificationLogsTable);
+
+    const enriched = await Promise.all(logs.map(async (log) => {
+      if (!log.engineerId) return { ...log, engineerName: null, engineerEmail: null };
+      const [eng] = await db.select({ name: usersTable.name, email: usersTable.email })
+        .from(engineersTable)
+        .innerJoin(usersTable, eq(engineersTable.userId, usersTable.id))
+        .where(eq(engineersTable.id, log.engineerId))
+        .limit(1);
+      return {
+        ...log,
+        engineerName: eng?.name ?? null,
+        engineerEmail: eng?.email ?? null,
+      };
+    }));
+
+    res.json({ items: enriched, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/admin/engineers/:id/reverify", requireAuth, requireRole("admin"), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.id as string);
+    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, engineerId)).limit(1);
+    if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
+
+    const attestatNumber = eng.attestatNumber ?? eng.registryNumber;
+    if (!attestatNumber) { res.status(400).json({ error: "Номер аттестата не указан" }); return; }
+
+    const record = await rosreestrProvider.lookupByAttestat(attestatNumber);
+
+    if (!record) {
+      await db.update(engineersTable).set({ isVerified: false, rosreestrCheckedAt: new Date(), rosreestrStatus: "not_found" }).where(eq(engineersTable.id, engineerId));
+      await db.insert(verificationLogsTable).values({
+        engineerId,
+        attestatNumber,
+        result: "fail",
+        failureReason: "Номер аттестата не найден в реестре Росреестра",
+        rawSnapshot: null,
+      });
+      res.json({ isValid: false, message: "Номер аттестата не найден в реестре Росреестра" });
+      return;
+    }
+
+    if (record.status !== "active" || record.sroStatus !== "active") {
+      const reason = record.status !== "active"
+        ? `Статус инженера: ${record.status === "suspended" ? "приостановлен" : "аннулирован"}`
+        : "Членство в СРО не является действующим";
+      await db.update(engineersTable).set({ isVerified: false, rosreestrCheckedAt: new Date(), rosreestrStatus: record.status }).where(eq(engineersTable.id, engineerId));
+      await db.insert(verificationLogsTable).values({
+        engineerId,
+        attestatNumber,
+        result: "fail",
+        failureReason: reason,
+        rawSnapshot: JSON.stringify(record),
+      });
+      res.json({ isValid: false, message: reason });
+      return;
+    }
+
+    const worksCount = record.worksCount;
+    const rejectionRate = worksCount > 0 ? record.rejectionsCount / worksCount : 0;
+    const newRating = computeRatingFromRosreestr(record);
+
+    await db.update(engineersTable).set({
+      isVerified: true,
+      rosreestrStatus: record.status,
+      sroName: record.sroName,
+      rosreestrCheckedAt: new Date(),
+      rosreestrWorksCount: record.worksCount,
+      rosreestrRejectionsCount: record.rejectionsCount,
+      rosreestrSuspensionsCount: record.suspensionsCount,
+      rosreestrRejectionRate: Math.round(rejectionRate * 1000) / 1000,
+      rating: newRating,
+    }).where(eq(engineersTable.id, engineerId));
+
+    await db.insert(verificationLogsTable).values({
+      engineerId,
+      attestatNumber,
+      result: "pass",
+      failureReason: null,
+      rawSnapshot: JSON.stringify(record),
+    });
+
+    res.json({ isValid: true, message: `Повторная верификация пройдена. СРО: ${record.sroName}.` });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

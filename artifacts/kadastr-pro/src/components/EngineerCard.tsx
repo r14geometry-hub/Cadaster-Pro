@@ -89,7 +89,7 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
                 )}
                 {engineer.isVerified && (
                   <div className="flex items-center gap-1 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5" data-testid={`badge-verified-${engineer.id}`}>
-                    <ShieldCheck className="w-3 h-3" /> Росреестр
+                    <ShieldCheck className="w-3 h-3" /> Росреестр ✓
                   </div>
                 )}
                 {engineer.isOnline ? (
@@ -118,7 +118,7 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
             <div className="w-px h-3 bg-border" />
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Briefcase className="w-3.5 h-3.5 text-blue-500" />
-              <span><span className="font-semibold text-foreground">{engineer.completedOrders}</span> заказов</span>
+              <span><span className="font-semibold text-foreground">{engineer.rosreestrWorksCount ?? engineer.completedOrders}</span> работ</span>
             </div>
             <div className="w-px h-3 bg-border" />
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -126,6 +126,11 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
               <span>{engineer.responseTime}</span>
             </div>
           </div>
+          {engineer.sroName && (
+            <div className="mt-2 text-xs text-muted-foreground truncate" title={engineer.sroName as string}>
+              СРО: {engineer.sroName as string}
+            </div>
+          )}
         </div>
 
         {/* Specializations */}

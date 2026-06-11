@@ -477,19 +477,38 @@ export default function EngineerDashboardPage() {
             <div className="max-w-xl space-y-6">
               {/* Verification */}
               <Card>
-                <CardHeader><CardTitle className="text-base">Верификация по реестру</CardTitle></CardHeader>
+                <CardHeader><CardTitle className="text-base">Верификация по реестру Росреестра</CardTitle></CardHeader>
                 <CardContent className="space-y-3">
                   {profile.isVerified ? (
-                    <div className="flex items-center gap-2 text-green-600">
-                      <ShieldCheck className="w-5 h-5" />
-                      <span className="font-medium">Верифицирован: {profile.registryNumber}</span>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-green-600">
+                        <ShieldCheck className="w-5 h-5" />
+                        <span className="font-medium">Верифицирован: {(profile as unknown as { attestatNumber?: string }).attestatNumber ?? profile.registryNumber}</span>
+                      </div>
+                      {(profile as unknown as { sroName?: string }).sroName && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-sm text-emerald-800">
+                          <p className="font-medium mb-1">СРО: {(profile as unknown as { sroName?: string }).sroName}</p>
+                          <p className="text-xs leading-relaxed">
+                            Кадастровый инженер состоит в действующем СРО. Ответственность инженера обеспечена компенсационным фондом саморегулируемой организации.
+                          </p>
+                        </div>
+                      )}
+                      {(profile as unknown as { rosreestrWorksCount?: number }).rosreestrWorksCount != null && (
+                        <div className="text-xs text-muted-foreground">
+                          Работ в реестре: <span className="font-semibold text-foreground">{(profile as unknown as { rosreestrWorksCount?: number }).rosreestrWorksCount}</span> ·
+                          Отказов: <span className="font-semibold text-foreground">{(profile as unknown as { rosreestrRejectionsCount?: number }).rosreestrRejectionsCount ?? 0}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <>
-                      <p className="text-sm text-muted-foreground">Введите номер реестра для подтверждения статуса</p>
+                      <p className="text-sm text-muted-foreground">
+                        Введите номер аттестата кадастрового инженера для проверки по реестру Росреестра.
+                        Регистрация возможна только для инженеров с действующим аттестатом и членством в СРО.
+                      </p>
                       <div className="flex gap-2">
                         <Input
-                          placeholder="Номер реестра (напр. 77-13-01)"
+                          placeholder="Номер аттестата (напр. 77-13-2023001)"
                           value={registryNumber}
                           onChange={(e) => setRegistryNumber(e.target.value)}
                           data-testid="input-registry-number"
@@ -502,6 +521,9 @@ export default function EngineerDashboardPage() {
                           Проверить
                         </Button>
                       </div>
+                      <p className="text-xs text-muted-foreground">
+                        Тестовые номера: 77-13-2023001, 78-05-2022015, 50-11-2021044
+                      </p>
                     </>
                   )}
                 </CardContent>

@@ -17,6 +17,7 @@ tags:
   - name: chat
   - name: admin
   - name: stats
+  - name: verification
 
 paths:
   /healthz:
@@ -913,6 +914,43 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminEngineerResult"
 
+  /admin/verification-logs:
+    get:
+      operationId: listAdminVerificationLogs
+      tags: [admin]
+      summary: List all verification logs (admin)
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerificationLogList"
+
+  /admin/engineers/{id}/reverify:
+    post:
+      operationId: reverifyEngineer
+      tags: [admin]
+      summary: Re-run Rosreestr verification for an engineer (admin)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReverifyResult"
+
 components:
   schemas:
     HealthStatus:
@@ -977,6 +1015,8 @@ components:
         role:
           type: string
         phone:
+          type: string
+        attestatNumber:
           type: string
       required: [name, email, password, role]
 
@@ -1081,6 +1121,22 @@ components:
           type: integer
         createdAt:
           type: string
+        attestatNumber:
+          type: ["string", "null"]
+        rosreestrStatus:
+          type: ["string", "null"]
+        sroName:
+          type: ["string", "null"]
+        rosreestrCheckedAt:
+          type: ["string", "null"]
+        rosreestrWorksCount:
+          type: ["integer", "null"]
+        rosreestrRejectionsCount:
+          type: ["integer", "null"]
+        rosreestrSuspensionsCount:
+          type: ["integer", "null"]
+        rosreestrRejectionRate:
+          type: ["number", "null"]
       required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, rating, reviewCount, completedOrders, portfolioItems, isPro, debtAmount, createdAt]
 
     EngineerList:
@@ -1614,3 +1670,50 @@ components:
         activeBoost:
           $ref: "#/components/schemas/ProfileBoost"
       required: [id, name, isPro, debtAmount]
+
+    VerificationLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        engineerId:
+          type: ["integer", "null"]
+        engineerName:
+          type: ["string", "null"]
+        engineerEmail:
+          type: ["string", "null"]
+        attestatNumber:
+          type: string
+        result:
+          type: string
+        failureReason:
+          type: ["string", "null"]
+        rawSnapshot:
+          type: ["string", "null"]
+        checkedAt:
+          type: string
+      required: [id, attestatNumber, result, checkedAt]
+
+    VerificationLogList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/VerificationLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    ReverifyResult:
+      type: object
+      properties:
+        isValid:
+          type: boolean
+        message:
+          type: string
+      required: [isValid, message]

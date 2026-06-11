@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   ShieldCheck, MapPin, Briefcase, MessageSquare, Star,
   Clock, Award, ChevronRight, CheckCircle2, Folder,
-  Calendar, Banknote, Phone
+  Calendar, Banknote, Phone, Building2, BarChart3, AlertTriangle
 } from "lucide-react";
 
 interface PortfolioItem {
@@ -127,6 +127,12 @@ export default function EngineerCardPage() {
   const specs = engineer.specializations as string[];
   const regions = (engineer as unknown as { regions?: string[] }).regions ?? [engineer.region];
   const portfolio = (engineer as unknown as { portfolioItems?: PortfolioItem[] }).portfolioItems ?? [];
+  const sroName = engineer.sroName as string | null | undefined;
+  const rosreestrWorksCount = engineer.rosreestrWorksCount as number | null | undefined;
+  const rosreestrRejectionsCount = engineer.rosreestrRejectionsCount as number | null | undefined;
+  const rosreestrRejectionRate = engineer.rosreestrRejectionRate as number | null | undefined;
+  const rosreestrCheckedAt = engineer.rosreestrCheckedAt as string | null | undefined;
+  const rosreestrStatus = engineer.rosreestrStatus as string | null | undefined;
 
   const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({
     star,
@@ -267,7 +273,7 @@ export default function EngineerCardPage() {
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: "Лет опыта", value: engineer.experience, icon: Award, color: "bg-amber-50 text-amber-600" },
-                    { label: "Заказов выполнено", value: engineer.completedOrders, icon: Briefcase, color: "bg-blue-50 text-blue-600" },
+                    { label: "Работ в реестре", value: rosreestrWorksCount ?? engineer.completedOrders, icon: Briefcase, color: "bg-blue-50 text-blue-600" },
                     { label: "Отзывов", value: totalReviews, icon: Star, color: "bg-violet-50 text-violet-600" },
                   ].map(({ label, value, icon: Icon, color }) => (
                     <Card key={label}>
@@ -281,6 +287,63 @@ export default function EngineerCardPage() {
                     </Card>
                   ))}
                 </div>
+
+                {/* Rosreestr data */}
+                {engineer.isVerified && (
+                  <Card className="border-emerald-200 bg-emerald-50/30">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-2 mb-4">
+                        <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                        <h3 className="font-semibold text-base text-emerald-800">Данные Росреестра</h3>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3 text-sm mb-4">
+                        {sroName && (
+                          <div className="flex items-start gap-2">
+                            <Building2 className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Членство в СРО</p>
+                              <p className="font-medium text-foreground text-xs leading-tight">{sroName}</p>
+                              <span className="inline-flex items-center gap-1 text-xs text-emerald-700 bg-emerald-100 border border-emerald-200 rounded-full px-2 py-0.5 mt-1">
+                                <CheckCircle2 className="w-3 h-3" /> Действующее
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {rosreestrWorksCount != null && (
+                          <div className="flex items-start gap-2">
+                            <BarChart3 className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Статистика работ</p>
+                              <p className="font-semibold text-foreground">{rosreestrWorksCount} работ</p>
+                              {rosreestrRejectionsCount != null && (
+                                <p className="text-xs text-muted-foreground">
+                                  Отказов: {rosreestrRejectionsCount}
+                                  {rosreestrRejectionRate != null && ` (${(rosreestrRejectionRate * 100).toFixed(1)}%)`}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {rosreestrCheckedAt && (
+                          <div className="flex items-start gap-2">
+                            <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <p className="text-xs text-muted-foreground mb-0.5">Дата проверки</p>
+                              <p className="text-xs text-foreground">
+                                {new Date(rosreestrCheckedAt).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+                        <p className="text-xs text-emerald-800 leading-relaxed">
+                          Кадастровый инженер состоит в действующем СРО. Ответственность инженера обеспечена компенсационным фондом саморегулируемой организации.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               {/* Portfolio */}
@@ -439,6 +502,20 @@ export default function EngineerCardPage() {
                       }
                     </span>
                   </div>
+                  {sroName && (
+                    <div className="flex items-start gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 flex-shrink-0" />
+                      <span className="text-emerald-700 font-medium leading-tight">{sroName}</span>
+                    </div>
+                  )}
+                  {rosreestrWorksCount != null && (
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-3.5 h-3.5 text-blue-400" />
+                      <span>{rosreestrWorksCount} работ · {rosreestrRejectionsCount ?? 0} отказов
+                        {rosreestrRejectionRate != null && ` · ${(rosreestrRejectionRate * 100).toFixed(1)}% отказов`}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

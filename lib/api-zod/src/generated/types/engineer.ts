@@ -34,4 +34,20 @@ export interface Engineer {
   proExpiresAt?: string | null;
   debtAmount: number;
   createdAt: string;
+  /** @nullable */
+  attestatNumber?: string | null;
+  /** @nullable */
+  rosreestrStatus?: string | null;
+  /** @nullable */
+  sroName?: string | null;
+  /** @nullable */
+  rosreestrCheckedAt?: string | null;
+  /** @nullable */
+  rosreestrWorksCount?: number | null;
+  /** @nullable */
+  rosreestrRejectionsCount?: number | null;
+  /** @nullable */
+  rosreestrSuspensionsCount?: number | null;
+  /** @nullable */
+  rosreestrRejectionRate?: number | null;
 }

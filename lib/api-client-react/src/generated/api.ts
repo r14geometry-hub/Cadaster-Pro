@@ -49,6 +49,7 @@ import type {
   ListAdminLeadsParams,
   ListAdminOrdersParams,
   ListAdminUsersParams,
+  ListAdminVerificationLogsParams,
   ListEngineersParams,
   ListOrdersParams,
   LoginInput,
@@ -62,11 +63,13 @@ import type {
   PlatformSettings,
   PlatformSettingsInput,
   RegisterInput,
+  ReverifyResult,
   Review,
   ReviewInput,
   StatsSummary,
   User,
   UserList,
+  VerificationLogList,
   VerifyInput,
   VerifyResult
 } from './api.schemas';
@@ -3559,5 +3562,159 @@ export const useUpdateAdminEngineer = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAdminEngineerMutationOptions(options));
+    }
+
+export const getListAdminVerificationLogsUrl = (params?: ListAdminVerificationLogsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/verification-logs?${stringifiedParams}` : `/api/admin/verification-logs`
+}
+
+/**
+ * @summary List all verification logs (admin)
+ */
+export const listAdminVerificationLogs = async (params?: ListAdminVerificationLogsParams, options?: RequestInit): Promise<VerificationLogList> => {
+
+  return customFetch<VerificationLogList>(getListAdminVerificationLogsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminVerificationLogsQueryKey = (params?: ListAdminVerificationLogsParams,) => {
+    return [
+    `/api/admin/verification-logs`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminVerificationLogsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminVerificationLogs>>, TError = ErrorType<unknown>>(params?: ListAdminVerificationLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVerificationLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminVerificationLogsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminVerificationLogs>>> = ({ signal }) => listAdminVerificationLogs(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminVerificationLogs>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminVerificationLogsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminVerificationLogs>>>
+export type ListAdminVerificationLogsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all verification logs (admin)
+ */
+
+export function useListAdminVerificationLogs<TData = Awaited<ReturnType<typeof listAdminVerificationLogs>>, TError = ErrorType<unknown>>(
+ params?: ListAdminVerificationLogsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminVerificationLogs>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminVerificationLogsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getReverifyEngineerUrl = (id: number,) => {
+
+
+
+
+  return `/api/admin/engineers/${id}/reverify`
+}
+
+/**
+ * @summary Re-run Rosreestr verification for an engineer (admin)
+ */
+export const reverifyEngineer = async (id: number, options?: RequestInit): Promise<ReverifyResult> => {
+
+  return customFetch<ReverifyResult>(getReverifyEngineerUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getReverifyEngineerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reverifyEngineer>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reverifyEngineer>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['reverifyEngineer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reverifyEngineer>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  reverifyEngineer(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReverifyEngineerMutationResult = NonNullable<Awaited<ReturnType<typeof reverifyEngineer>>>
+
+    export type ReverifyEngineerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Re-run Rosreestr verification for an engineer (admin)
+ */
+export const useReverifyEngineer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reverifyEngineer>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof reverifyEngineer>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getReverifyEngineerMutationOptions(options));
     }
 
