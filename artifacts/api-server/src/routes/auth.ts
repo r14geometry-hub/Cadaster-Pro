@@ -15,6 +15,12 @@ router.post("/auth/register", async (req, res) => {
       return;
     }
 
+    const ALLOWED_ROLES = ["customer", "engineer"];
+    if (!ALLOWED_ROLES.includes(role)) {
+      res.status(400).json({ error: "Invalid role. Allowed: customer, engineer" });
+      return;
+    }
+
     if (role === "engineer") {
       if (!attestatNumber) {
         res.status(400).json({

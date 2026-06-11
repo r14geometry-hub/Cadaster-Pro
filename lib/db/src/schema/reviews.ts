@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, boolean, varchar, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { ordersTable } from "./orders";
@@ -14,6 +14,7 @@ export const reviewsTable = pgTable("reviews", {
   comment: text("comment"),
   serviceType: text("service_type"),
   isVerifiedPurchase: boolean("is_verified_purchase").notNull().default(true),
+  moderationStatus: varchar("moderation_status", { length: 50 }).notNull().default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

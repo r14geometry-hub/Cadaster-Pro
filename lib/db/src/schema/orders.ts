@@ -12,7 +12,7 @@ export const ordersTable = pgTable("orders", {
   region: varchar("region", { length: 255 }).notNull(),
   budget: real("budget"),
   deadline: varchar("deadline", { length: 100 }),
-  status: varchar("status", { length: 50 }).notNull().default("open"),
+  status: varchar("status", { length: 50 }).notNull().default("new"),
   bidCount: integer("bid_count").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

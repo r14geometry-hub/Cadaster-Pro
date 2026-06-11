@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, usersTable, ordersTable, engineersTable, reviewsTable } from "@workspace/db";
 import { eq, and, sql } from "drizzle-orm";
 import { requireAuth } from "../middlewares/auth";
+import { calculateWeightedRating } from "./reviews";
 
 const router = Router();
 
@@ -46,8 +47,9 @@ router.get("/orders", async (req, res) => {
 
 router.get("/orders/recent", async (req, res) => {
   try {
+    // Show orders that are new or collecting responses
     const all = await db.select().from(ordersTable)
-      .where(eq(ordersTable.status, "open"))
+      .where(sql`${ordersTable.status} IN ('new', 'open', 'collecting_responses')`)
       .orderBy(sql`${ordersTable.createdAt} desc`)
       .limit(6);
     res.json(await Promise.all(all.map(formatOrder)));
@@ -68,7 +70,7 @@ router.post("/orders", requireAuth, async (req, res) => {
       title, description, serviceType, region,
       budget: budget ?? null,
       deadline: deadline ?? null,
-      status: asDraft ? "draft" : "open",
+      status: asDraft ? "draft" : "new",
     }).returning();
     res.status(201).json(await formatOrder(order));
   } catch (err) {
@@ -94,14 +96,35 @@ router.patch("/orders/:orderId", requireAuth, async (req, res) => {
     const id = parseInt(req.params.orderId as string);
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Not found" }); return; }
-    if (order.customerId !== req.user!.userId && req.user!.role !== "admin") {
+    if (order.customerId !== req.user!.userId && req.user!.role !== "admin" && req.user!.role !== "superadmin") {
       res.status(403).json({ error: "Forbidden" }); return;
     }
     const { title, description, status, budget, deadline } = req.body;
+    const isAdmin = req.user!.role === "admin" || req.user!.role === "superadmin";
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (description !== undefined) updates.description = description;
-    if (status !== undefined) updates.status = status;
+    if (status !== undefined) {
+      const normalised = status === "open" ? "new" : status;
+      if (!isAdmin) {
+        // Enforce finite state machine for non-admins
+        const CUSTOMER_ALLOWED_TRANSITIONS: Record<string, string[]> = {
+          draft:                ["new", "cancelled"],
+          new:                  ["cancelled"],
+          open:                 ["cancelled"],
+          collecting_responses: ["cancelled"],
+          engineer_selected:    ["in_progress", "cancelled"],
+          in_progress:          ["cancelled"],
+          completed:            [],
+          cancelled:            [],
+        };
+        const allowed = CUSTOMER_ALLOWED_TRANSITIONS[order.status] ?? [];
+        if (!allowed.includes(normalised)) {
+          res.status(400).json({ error: `Invalid status transition from '${order.status}' to '${normalised}'` }); return;
+        }
+      }
+      updates.status = normalised;
+    }
     if (budget !== undefined) updates.budget = budget;
     if (deadline !== undefined) updates.deadline = deadline;
     const [updated] = await db.update(ordersTable).set(updates).where(eq(ordersTable.id, id)).returning();
@@ -112,7 +135,6 @@ router.patch("/orders/:orderId", requireAuth, async (req, res) => {
   }
 });
 
-// Complete an order and optionally submit a review in one step
 router.post("/orders/:orderId/complete", requireAuth, async (req, res) => {
   try {
     const id = parseInt(req.params.orderId as string);
@@ -121,14 +143,16 @@ router.post("/orders/:orderId/complete", requireAuth, async (req, res) => {
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Not found" }); return; }
     if (order.customerId !== req.user!.userId) { res.status(403).json({ error: "Forbidden" }); return; }
-    if (order.status !== "in_progress") { res.status(400).json({ error: "Order is not in progress" }); return; }
 
-    // Mark order completed
+    const completable = ["in_progress"];
+    if (!completable.includes(order.status)) {
+      res.status(400).json({ error: "Order cannot be completed from its current status" }); return;
+    }
+
     await db.update(ordersTable).set({ status: "completed" }).where(eq(ordersTable.id, id));
 
     let review = null;
     if (rating && engineerId) {
-      // Insert review
       const [r] = await db.insert(reviewsTable).values({
         orderId: id,
         authorId: req.user!.userId,
@@ -136,19 +160,13 @@ router.post("/orders/:orderId/complete", requireAuth, async (req, res) => {
         rating,
         comment: comment ?? null,
         isVerifiedPurchase: true,
+        moderationStatus: "pending",
       }).returning();
       review = r;
 
-      // Recalculate engineer rating
-      const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
-        .where(eq(reviewsTable.engineerId, engineerId));
-      const avgRating = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+      // Only increment completedOrders — rating/reviewCount update deferred to moderation publish
       await db.update(engineersTable)
-        .set({
-          rating: Math.round(avgRating * 10) / 10,
-          reviewCount: allReviews.length,
-          completedOrders: sql`${engineersTable.completedOrders} + 1`,
-        })
+        .set({ completedOrders: sql`${engineersTable.completedOrders} + 1` })
         .where(eq(engineersTable.id, engineerId));
     }
 
@@ -165,7 +183,7 @@ router.delete("/orders/:orderId", requireAuth, async (req, res) => {
     const id = parseInt(req.params.orderId as string);
     const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, id)).limit(1);
     if (!order) { res.status(404).json({ error: "Not found" }); return; }
-    if (order.customerId !== req.user!.userId && req.user!.role !== "admin") {
+    if (order.customerId !== req.user!.userId && req.user!.role !== "admin" && req.user!.role !== "superadmin") {
       res.status(403).json({ error: "Forbidden" }); return;
     }
     await db.delete(ordersTable).where(eq(ordersTable.id, id));

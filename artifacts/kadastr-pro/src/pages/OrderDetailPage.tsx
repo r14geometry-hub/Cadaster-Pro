@@ -26,14 +26,17 @@ import {
 } from "lucide-react";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; step: number }> = {
-  draft:       { label: "Черновик",   color: "bg-gray-100 text-gray-600 border-gray-200",   step: 0 },
-  open:        { label: "Открыта",    color: "bg-blue-50 text-blue-700 border-blue-200",    step: 1 },
-  in_progress: { label: "В работе",   color: "bg-amber-50 text-amber-700 border-amber-200", step: 2 },
-  completed:   { label: "Завершена",  color: "bg-green-50 text-green-700 border-green-200", step: 3 },
-  cancelled:   { label: "Отменена",   color: "bg-red-50 text-red-600 border-red-200",       step: -1 },
+  draft:                { label: "Черновик",       color: "bg-gray-100 text-gray-600 border-gray-200",     step: 0 },
+  new:                  { label: "Новая",          color: "bg-blue-50 text-blue-700 border-blue-200",      step: 1 },
+  open:                 { label: "Открыта",        color: "bg-blue-50 text-blue-700 border-blue-200",      step: 1 },
+  collecting_responses: { label: "Сбор откликов", color: "bg-indigo-50 text-indigo-700 border-indigo-200", step: 2 },
+  engineer_selected:    { label: "Инженер выбран",color: "bg-teal-50 text-teal-700 border-teal-200",       step: 3 },
+  in_progress:          { label: "В работе",       color: "bg-amber-50 text-amber-700 border-amber-200",   step: 3 },
+  completed:            { label: "Завершена",      color: "bg-green-50 text-green-700 border-green-200",   step: 4 },
+  cancelled:            { label: "Отменена",       color: "bg-red-50 text-red-600 border-red-200",         step: -1 },
 };
 
-const STEPS = ["Черновик", "Открыта", "В работе", "Завершена"];
+const STEPS = ["Черновик", "Новая", "Сбор откликов", "Инженер выбран", "Завершена"];
 
 function StatusBar({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.open;
@@ -331,7 +334,7 @@ export default function OrderDetailPage() {
                         {/* Actions for order owner */}
                         {isOwner && !isRejected && (
                           <div className="flex gap-2 mt-4 pt-3 border-t">
-                            {bid.status === "pending" && order.status === "open" && (
+                            {bid.status === "pending" && ["new", "open", "collecting_responses"].includes(order.status) && (
                               <>
                                 <Button
                                   size="sm"
@@ -398,11 +401,22 @@ export default function OrderDetailPage() {
                   <Button
                     className="w-full"
                     size="sm"
-                    onClick={() => updateOrder.mutate({ orderId: id, data: { status: "open" } })}
+                    onClick={() => updateOrder.mutate({ orderId: id, data: { status: "new" } })}
                     disabled={updateOrder.isPending}
                     data-testid="button-publish-order"
                   >
                     Опубликовать заявку
+                  </Button>
+                )}
+                {order.status === "engineer_selected" && (
+                  <Button
+                    className="w-full gap-1.5"
+                    size="sm"
+                    onClick={() => updateOrder.mutate({ orderId: id, data: { status: "in_progress" } })}
+                    disabled={updateOrder.isPending}
+                    data-testid="button-start-order"
+                  >
+                    Начать работу
                   </Button>
                 )}
                 {order.status === "in_progress" && (
@@ -415,7 +429,7 @@ export default function OrderDetailPage() {
                     <CheckCircle className="w-4 h-4" /> Завершить заявку
                   </Button>
                 )}
-                {(order.status === "open" || order.status === "draft") && (
+                {["draft", "new", "open", "collecting_responses"].includes(order.status) && (
                   <Button
                     className="w-full"
                     size="sm"

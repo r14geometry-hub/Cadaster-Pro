@@ -120,6 +120,18 @@ paths:
           in: query
           schema:
             type: string
+        - name: district
+          in: query
+          schema:
+            type: string
+        - name: sro
+          in: query
+          schema:
+            type: string
+        - name: verifiedOnly
+          in: query
+          schema:
+            type: string
         - name: page
           in: query
           schema:
@@ -1026,7 +1038,74 @@ paths:
               schema:
                 $ref: "#/components/schemas/AdminEngineerList"
 
+  /admin/users/{userId}/role:
+    put:
+      operationId: setUserRole
+      tags: [admin]
+      summary: Change user role (superadmin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UserRoleUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+
+  /admin/engineers/{engineerId}/visibility:
+    patch:
+      operationId: setEngineerVisibility
+      tags: [admin]
+      summary: Show or hide an engineer profile (admin)
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EngineerVisibilityUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineerVisibilityResult"
+
   /admin/engineers/{engineerId}:
+    delete:
+      operationId: deleteAdminEngineer
+      tags: [admin]
+      summary: Delete engineer profile (admin)
+      parameters:
+        - name: engineerId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
     patch:
       operationId: updateAdminEngineer
       tags: [admin]
@@ -1050,6 +1129,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminEngineerResult"
+
+  /admin/reviews:
+    get:
+      operationId: listAdminReviews
+      tags: [admin]
+      summary: List all reviews for moderation (admin)
+      parameters:
+        - name: moderationStatus
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminReviewList"
+
+  /admin/reviews/{reviewId}:
+    patch:
+      operationId: moderateReview
+
+      tags: [admin]
+      summary: Publish or hide a review (admin)
+      parameters:
+        - name: reviewId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminReviewUpdate"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminReviewItem"
 
   /admin/verification-logs:
     get:
@@ -1232,6 +1359,10 @@ components:
           type: array
           items:
             type: string
+        district:
+          type: ["string", "null"]
+        sro:
+          type: ["string", "null"]
         experience:
           type: integer
         bio:
@@ -1239,6 +1370,8 @@ components:
         isVerified:
           type: boolean
         isOnline:
+          type: boolean
+        isHidden:
           type: boolean
         rating:
           type: number
@@ -1278,7 +1411,7 @@ components:
           type: ["integer", "null"]
         rosreestrRejectionRate:
           type: ["number", "null"]
-      required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, rating, reviewCount, completedOrders, portfolioItems, isPro, debtAmount, createdAt]
+      required: [id, userId, user, registryNumber, specializations, region, regions, experience, isVerified, isOnline, isHidden, rating, reviewCount, completedOrders, portfolioItems, isPro, debtAmount, createdAt]
 
     EngineerList:
       type: object
@@ -1504,9 +1637,11 @@ components:
           type: integer
         comment:
           type: ["string", "null"]
+        moderationStatus:
+          type: string
         createdAt:
           type: string
-      required: [id, orderId, authorId, author, engineerId, rating, createdAt]
+      required: [id, orderId, authorId, author, engineerId, rating, moderationStatus, createdAt]
 
     ReviewInput:
       type: object
@@ -1709,11 +1844,15 @@ components:
           type: integer
         completedOrders:
           type: integer
+        verifiedEngineers:
+          type: integer
+        pendingReviews:
+          type: integer
         totalRevenue:
           type: number
         newUsersThisMonth:
           type: integer
-      required: [totalUsers, totalEngineers, totalCustomers, totalOrders, openOrders, completedOrders, totalRevenue, newUsersThisMonth]
+      required: [totalUsers, totalEngineers, totalCustomers, totalOrders, openOrders, completedOrders, verifiedEngineers, pendingReviews, totalRevenue, newUsersThisMonth]
 
     AdminUserUpdate:
       type: object
@@ -1856,19 +1995,27 @@ components:
           type: number
         isVerified:
           type: boolean
+        isHidden:
+          type: boolean
         isPro:
           type: boolean
         proExpiresAt:
           type: ["string", "null"]
         debtAmount:
           type: integer
+        sroName:
+          type: ["string", "null"]
+        attestatNumber:
+          type: ["string", "null"]
+        rosreestrRejectionRate:
+          type: ["number", "null"]
         specializations:
           type: array
           items:
             type: string
         activeBoost:
           $ref: "#/components/schemas/ProfileBoost"
-      required: [id, userId, name, email, region, rating, isVerified, isPro, debtAmount, specializations]
+      required: [id, userId, name, email, region, rating, isVerified, isHidden, isPro, debtAmount, specializations]
 
     AdminEngineerList:
       type: object
@@ -1894,6 +2041,8 @@ components:
           type: ["string", "null"]
         boostPeriod:
           type: integer
+        isHidden:
+          type: boolean
 
     AdminEngineerResult:
       type: object
@@ -1904,13 +2053,87 @@ components:
           type: string
         isPro:
           type: boolean
+        isHidden:
+          type: boolean
         proExpiresAt:
           type: ["string", "null"]
         debtAmount:
           type: integer
         activeBoost:
           $ref: "#/components/schemas/ProfileBoost"
-      required: [id, name, isPro, debtAmount]
+      required: [id, name, isPro, isHidden, debtAmount]
+
+    UserRoleUpdate:
+      type: object
+      properties:
+        role:
+          type: string
+      required: [role]
+
+    EngineerVisibilityUpdate:
+      type: object
+      properties:
+        isHidden:
+          type: boolean
+      required: [isHidden]
+
+    EngineerVisibilityResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        isHidden:
+          type: boolean
+      required: [id, isHidden]
+
+    AdminReviewItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        orderId:
+          type: integer
+        authorId:
+          type: integer
+        authorName:
+          type: string
+        authorEmail:
+          type: string
+        engineerId:
+          type: integer
+        engineerName:
+          type: string
+        rating:
+          type: integer
+        comment:
+          type: ["string", "null"]
+        moderationStatus:
+          type: string
+        createdAt:
+          type: string
+      required: [id, orderId, authorId, authorName, authorEmail, engineerId, engineerName, rating, moderationStatus, createdAt]
+
+    AdminReviewList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminReviewItem"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required: [items, total, page, limit]
+
+    AdminReviewUpdate:
+      type: object
+      properties:
+        moderationStatus:
+          type: string
+      required: [moderationStatus]
 
     VerificationLog:
       type: object

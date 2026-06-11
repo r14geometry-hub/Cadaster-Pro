@@ -1,23 +1,28 @@
 import { Router } from "express";
-import { db, usersTable, engineersTable, ordersTable, leadsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, messagesTable } from "@workspace/db";
+import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable } from "@workspace/db";
 import { eq, and, sql, gte, desc } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
+import { calculateWeightedRating } from "./reviews";
 
 const router = Router();
+
+const ADMIN_ROLES = ["admin", "superadmin"];
 
 function parseJson(s: string): unknown[] {
   try { return JSON.parse(s); } catch { return []; }
 }
 
-router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/stats", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const [{ total: totalUsers }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable);
     const [{ total: totalEngineers }] = await db.select({ total: sql<number>`count(*)` }).from(engineersTable);
     const [{ total: totalCustomers }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable).where(eq(usersTable.role, "customer"));
     const [{ total: totalOrders }] = await db.select({ total: sql<number>`count(*)` }).from(ordersTable);
-    const [{ total: openOrders }] = await db.select({ total: sql<number>`count(*)` }).from(ordersTable).where(eq(ordersTable.status, "open"));
+    const [{ total: openOrders }] = await db.select({ total: sql<number>`count(*)` }).from(ordersTable).where(sql`${ordersTable.status} IN ('new', 'open', 'collecting_responses')`);
     const [{ total: completedOrders }] = await db.select({ total: sql<number>`count(*)` }).from(ordersTable).where(eq(ordersTable.status, "completed"));
+    const [{ total: verifiedEngineers }] = await db.select({ total: sql<number>`count(*)` }).from(engineersTable).where(eq(engineersTable.isVerified, true));
+    const [{ total: pendingReviews }] = await db.select({ total: sql<number>`count(*)` }).from(reviewsTable).where(eq(reviewsTable.moderationStatus, "pending"));
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const [{ total: newUsersThisMonth }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable).where(sql`${usersTable.createdAt} >= ${monthStart.toISOString()}`);
@@ -29,6 +34,8 @@ router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) =
       totalOrders: Number(totalOrders),
       openOrders: Number(openOrders),
       completedOrders: Number(completedOrders),
+      verifiedEngineers: Number(verifiedEngineers),
+      pendingReviews: Number(pendingReviews),
       totalRevenue: Number(totalDebt),
       newUsersThisMonth: Number(newUsersThisMonth),
     });
@@ -38,7 +45,7 @@ router.get("/admin/stats", requireAuth, requireRole("admin"), async (req, res) =
   }
 });
 
-router.get("/admin/users", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/users", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { role, page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -56,12 +63,11 @@ router.get("/admin/users", requireAuth, requireRole("admin"), async (req, res) =
   }
 });
 
-router.patch("/admin/users/:userId", requireAuth, requireRole("admin"), async (req, res) => {
+router.patch("/admin/users/:userId", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const userId = parseInt(req.params.userId as string);
-    const { role, isBlocked } = req.body;
+    const { isBlocked } = req.body;
     const updates: Record<string, unknown> = {};
-    if (role !== undefined) updates.role = role;
     if (isBlocked !== undefined) updates.isBlocked = isBlocked ? "true" : "false";
     const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, userId)).returning();
     if (!updated) { res.status(404).json({ error: "User not found" }); return; }
@@ -73,7 +79,26 @@ router.patch("/admin/users/:userId", requireAuth, requireRole("admin"), async (r
   }
 });
 
-router.get("/admin/orders", requireAuth, requireRole("admin"), async (req, res) => {
+// Superadmin-only: change user role
+router.put("/admin/users/:userId/role", requireAuth, requireRole("superadmin"), async (req, res) => {
+  try {
+    const userId = parseInt(req.params.userId as string);
+    const { role } = req.body;
+    const allowed = ["customer", "engineer", "admin", "superadmin"];
+    if (!role || !allowed.includes(role)) {
+      res.status(400).json({ error: "Invalid role" }); return;
+    }
+    const [updated] = await db.update(usersTable).set({ role }).where(eq(usersTable.id, userId)).returning();
+    if (!updated) { res.status(404).json({ error: "User not found" }); return; }
+    const { passwordHash: _, ...safe } = updated;
+    res.json({ ...safe, phone: safe.phone ?? null, avatarUrl: safe.avatarUrl ?? null });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/admin/orders", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { status, page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -93,7 +118,7 @@ router.get("/admin/orders", requireAuth, requireRole("admin"), async (req, res) 
 
 // ── Platform Settings ─────────────────────────────────────────────────────────
 
-router.get("/admin/settings", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/settings", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const rows = await db.select().from(platformSettingsTable).orderBy(platformSettingsTable.key);
     const settings: Record<string, string> = {};
@@ -105,7 +130,7 @@ router.get("/admin/settings", requireAuth, requireRole("admin"), async (req, res
   }
 });
 
-router.put("/admin/settings", requireAuth, requireRole("admin"), async (req, res) => {
+router.put("/admin/settings", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { settings } = req.body as { settings: Record<string, string> };
     if (!settings || typeof settings !== "object") {
@@ -128,7 +153,7 @@ router.put("/admin/settings", requireAuth, requireRole("admin"), async (req, res
 
 // ── Lead Prices ──────────────────────────────────────────────────────────────
 
-router.get("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/lead-prices", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const prices = await db.select().from(leadPricesTable).orderBy(leadPricesTable.serviceType);
     res.json(prices);
@@ -138,7 +163,7 @@ router.get("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, 
   }
 });
 
-router.put("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, res) => {
+router.put("/admin/lead-prices", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { prices } = req.body as { prices: Array<{ serviceType: string; price: number }> };
     if (!Array.isArray(prices)) { res.status(400).json({ error: "prices array required" }); return; }
@@ -160,7 +185,7 @@ router.put("/admin/lead-prices", requireAuth, requireRole("admin"), async (req, 
 
 // ── Leads Management ──────────────────────────────────────────────────────────
 
-router.get("/admin/leads", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/leads", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { engineerId, paymentStatus, page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -179,10 +204,7 @@ router.get("/admin/leads", requireAuth, requireRole("admin"), async (req, res) =
     const enriched = await Promise.all(all.map(async (lead) => {
       const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, lead.engineerId)).limit(1);
       const [user] = eng ? await db.select().from(usersTable).where(eq(usersTable.id, eng.userId)).limit(1) : [null];
-      return {
-        ...lead,
-        engineerName: user?.name ?? "—",
-      };
+      return { ...lead, engineerName: user?.name ?? "—" };
     }));
 
     res.json({ items: enriched, total: Number(total), page: pageNum, limit });
@@ -192,7 +214,7 @@ router.get("/admin/leads", requireAuth, requireRole("admin"), async (req, res) =
   }
 });
 
-router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (req, res) => {
+router.patch("/admin/leads/:leadId", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const leadId = parseInt(req.params.leadId as string);
     const { paymentStatus } = req.body;
@@ -206,14 +228,11 @@ router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (r
       .where(eq(leadsTable.id, leadId))
       .returning();
 
-    // Keep debtAmount in sync with payment status transitions
     if (paymentStatus === "paid" && lead.paymentStatus === "unpaid") {
-      // Marking paid: reduce debt
       await db.update(engineersTable)
         .set({ debtAmount: sql`greatest(0, ${engineersTable.debtAmount} - ${lead.leadCost})` })
         .where(eq(engineersTable.id, lead.engineerId));
     } else if (paymentStatus === "unpaid" && lead.paymentStatus === "paid") {
-      // Reversing to unpaid: restore debt
       await db.update(engineersTable)
         .set({ debtAmount: sql`${engineersTable.debtAmount} + ${lead.leadCost}` })
         .where(eq(engineersTable.id, lead.engineerId));
@@ -226,7 +245,7 @@ router.patch("/admin/leads/:leadId", requireAuth, requireRole("admin"), async (r
   }
 });
 
-router.get("/admin/leads/summary", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/leads/summary", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const engineers = await db.select().from(engineersTable).orderBy(sql`${engineersTable.debtAmount} desc`);
     const summary = await Promise.all(engineers.map(async (eng) => {
@@ -252,7 +271,7 @@ router.get("/admin/leads/summary", requireAuth, requireRole("admin"), async (req
 
 // ── PRO & Boost controls ──────────────────────────────────────────────────────
 
-router.get("/admin/engineers", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/engineers", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -278,9 +297,13 @@ router.get("/admin/engineers", requireAuth, requireRole("admin"), async (req, re
         region: eng.region,
         rating: eng.rating,
         isVerified: eng.isVerified,
+        isHidden: eng.isHidden ?? false,
         isPro: eng.isPro,
         proExpiresAt: eng.proExpiresAt ?? null,
         debtAmount: eng.debtAmount ?? 0,
+        sroName: eng.sroName ?? null,
+        attestatNumber: eng.attestatNumber ?? null,
+        rosreestrRejectionRate: eng.rosreestrRejectionRate ?? null,
         specializations: parseJson(eng.specializations) as string[],
         activeBoost: boostMap.get(eng.id) ?? null,
       };
@@ -293,14 +316,15 @@ router.get("/admin/engineers", requireAuth, requireRole("admin"), async (req, re
   }
 });
 
-router.patch("/admin/engineers/:engineerId", requireAuth, requireRole("admin"), async (req, res) => {
+router.patch("/admin/engineers/:engineerId", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const engineerId = parseInt(req.params.engineerId as string);
-    const { isPro, proExpiresAt, boostPeriod } = req.body;
+    const { isPro, proExpiresAt, boostPeriod, isHidden } = req.body;
 
     const updates: Record<string, unknown> = {};
     if (isPro !== undefined) updates.isPro = isPro;
     if (proExpiresAt !== undefined) updates.proExpiresAt = proExpiresAt ? new Date(proExpiresAt) : null;
+    if (isHidden !== undefined) updates.isHidden = isHidden;
 
     if (Object.keys(updates).length > 0) {
       await db.update(engineersTable).set(updates).where(eq(engineersTable.id, engineerId));
@@ -325,6 +349,7 @@ router.patch("/admin/engineers/:engineerId", requireAuth, requireRole("admin"), 
       id: eng.id,
       name: user?.name ?? "—",
       isPro: eng.isPro,
+      isHidden: eng.isHidden ?? false,
       proExpiresAt: eng.proExpiresAt ?? null,
       debtAmount: eng.debtAmount ?? 0,
       activeBoost: activeBoosts[activeBoosts.length - 1] ?? null,
@@ -335,9 +360,191 @@ router.patch("/admin/engineers/:engineerId", requireAuth, requireRole("admin"), 
   }
 });
 
+// Hide/show engineer profile
+router.patch("/admin/engineers/:engineerId/visibility", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.engineerId as string);
+    const { isHidden } = req.body;
+    if (isHidden === undefined) { res.status(400).json({ error: "isHidden required" }); return; }
+
+    const [eng] = await db.update(engineersTable)
+      .set({ isHidden })
+      .where(eq(engineersTable.id, engineerId))
+      .returning();
+    if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
+
+    res.json({ id: eng.id, isHidden: eng.isHidden });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Delete engineer profile and their user account (cascade all FK-dependent rows first)
+router.delete("/admin/engineers/:engineerId", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.engineerId as string);
+    const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, engineerId)).limit(1);
+    if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
+
+    // Cascade-delete all FK-dependent rows in the correct order, wrapped in a transaction
+    await db.transaction(async (tx) => {
+      // 1. chat_attachments → chat_rooms FK
+      await tx.delete(chatAttachmentsTable).where(
+        sql`${chatAttachmentsTable.roomId} IN (SELECT id FROM chat_rooms WHERE engineer_id = ${engineerId})`
+      );
+      // 2. messages → chat_rooms FK
+      await tx.delete(messagesTable).where(
+        sql`${messagesTable.roomId} IN (SELECT id FROM chat_rooms WHERE engineer_id = ${engineerId})`
+      );
+      // 3. complaints → chat_rooms FK (must go before chat_rooms)
+      await tx.delete(complaintsTable).where(
+        sql`${complaintsTable.roomId} IN (SELECT id FROM chat_rooms WHERE engineer_id = ${engineerId})`
+      );
+      // 4. chat_rooms
+      await tx.delete(chatRoomsTable).where(eq(chatRoomsTable.engineerId, engineerId));
+      // 4. other engineer FK dependencies
+      await tx.delete(reviewsTable).where(eq(reviewsTable.engineerId, engineerId));
+      await tx.delete(leadsTable).where(eq(leadsTable.engineerId, engineerId));
+      await tx.delete(profileBoostsTable).where(eq(profileBoostsTable.engineerId, engineerId));
+      await tx.delete(verificationLogsTable).where(eq(verificationLogsTable.engineerId, engineerId));
+      await tx.delete(bidsTable).where(eq(bidsTable.engineerId, engineerId));
+      // 5. engineer profile, then user account
+      await tx.delete(engineersTable).where(eq(engineersTable.id, engineerId));
+      await tx.delete(usersTable).where(eq(usersTable.id, eng.userId));
+    });
+    res.json({ message: "Engineer and user account deleted" });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── Admin Reviews Moderation ───────────────────────────────────────────────────
+
+router.get("/admin/reviews", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const { moderationStatus, page = "1" } = req.query as Record<string, string>;
+    const pageNum = parseInt(page);
+    const limit = 20;
+    const offset = (pageNum - 1) * limit;
+
+    let query = db.select().from(reviewsTable).$dynamic();
+    if (moderationStatus) query = query.where(eq(reviewsTable.moderationStatus, moderationStatus));
+
+    const all = await query.orderBy(desc(reviewsTable.createdAt)).limit(limit).offset(offset);
+
+    let countQuery = db.select({ total: sql<number>`count(*)` }).from(reviewsTable).$dynamic();
+    if (moderationStatus) countQuery = countQuery.where(eq(reviewsTable.moderationStatus, moderationStatus));
+    const [{ total }] = await countQuery;
+
+    const enriched = await Promise.all(all.map(async (review) => {
+      const [author] = await db.select({ name: usersTable.name, email: usersTable.email })
+        .from(usersTable).where(eq(usersTable.id, review.authorId)).limit(1);
+      const [eng] = await db.select({ name: usersTable.name })
+        .from(engineersTable)
+        .innerJoin(usersTable, eq(engineersTable.userId, usersTable.id))
+        .where(eq(engineersTable.id, review.engineerId))
+        .limit(1);
+      return {
+        ...review,
+        comment: review.comment ?? null,
+        authorName: author?.name ?? "—",
+        authorEmail: author?.email ?? "—",
+        engineerName: eng?.name ?? "—",
+      };
+    }));
+
+    res.json({ items: enriched, total: Number(total), page: pageNum, limit });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/admin/reviews/:reviewId", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const reviewId = parseInt(req.params.reviewId as string);
+    const { moderationStatus } = req.body;
+    const allowed = ["pending", "published", "hidden"];
+    if (!moderationStatus || !allowed.includes(moderationStatus)) {
+      res.status(400).json({ error: "moderationStatus must be pending, published, or hidden" }); return;
+    }
+
+    const [updatedReview] = await db.update(reviewsTable)
+      .set({ moderationStatus })
+      .where(eq(reviewsTable.id, reviewId))
+      .returning();
+    if (!updatedReview) { res.status(404).json({ error: "Review not found" }); return; }
+
+    const review = updatedReview;
+    // Recalculate engineer rating when moderation status changes
+    const publishedReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
+      .where(and(eq(reviewsTable.engineerId, review.engineerId), eq(reviewsTable.moderationStatus, "published")));
+
+    const [eng] = await db.select({
+      rosreestrWorksCount: engineersTable.rosreestrWorksCount,
+      rosreestrRejectionsCount: engineersTable.rosreestrRejectionsCount,
+      rosreestrSuspensionsCount: engineersTable.rosreestrSuspensionsCount,
+    }).from(engineersTable).where(eq(engineersTable.id, review.engineerId)).limit(1);
+
+    // Derive rosreestr score using same formula as computeRatingFromRosreestr (single source of truth)
+    let rosreestrScore: number | null = null;
+    if (eng && eng.rosreestrWorksCount !== null && eng.rosreestrWorksCount !== undefined) {
+      const mockRecord = {
+        worksCount: eng.rosreestrWorksCount ?? 0,
+        rejectionsCount: eng.rosreestrRejectionsCount ?? 0,
+        suspensionsCount: eng.rosreestrSuspensionsCount ?? 0,
+        status: "active" as const,
+        sroStatus: "active" as const,
+        attestatNumber: "",
+        fullName: "",
+        engineerName: "",
+        sroName: "",
+      };
+      const score = computeRatingFromRosreestr(mockRecord);
+      rosreestrScore = score > 0 ? score : null;
+    }
+
+    const newRating = calculateWeightedRating(publishedReviews, rosreestrScore);
+    await db.update(engineersTable)
+      .set({
+        rating: newRating,
+        reviewCount: publishedReviews.length,
+      })
+      .where(eq(engineersTable.id, review.engineerId));
+
+    // Return AdminReviewItem shape (with author/engineer names) to match OpenAPI spec
+    const [author] = await db.select({ name: usersTable.name, email: usersTable.email })
+      .from(usersTable).where(eq(usersTable.id, review.authorId)).limit(1);
+    const [engRow] = await db.select({ userId: engineersTable.userId })
+      .from(engineersTable).where(eq(engineersTable.id, review.engineerId)).limit(1);
+    const [engUser] = engRow
+      ? await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, engRow.userId)).limit(1)
+      : [null];
+
+    res.json({
+      id: review.id,
+      orderId: review.orderId,
+      authorId: review.authorId,
+      authorName: author?.name ?? "—",
+      authorEmail: author?.email ?? "—",
+      engineerId: review.engineerId,
+      engineerName: engUser?.name ?? "—",
+      rating: review.rating,
+      comment: review.comment ?? null,
+      moderationStatus: review.moderationStatus,
+      createdAt: review.createdAt,
+    });
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // ── Rosreestr Verification Logs ───────────────────────────────────────────────
 
-router.get("/admin/verification-logs", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/verification-logs", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -358,11 +565,7 @@ router.get("/admin/verification-logs", requireAuth, requireRole("admin"), async 
         .innerJoin(usersTable, eq(engineersTable.userId, usersTable.id))
         .where(eq(engineersTable.id, log.engineerId))
         .limit(1);
-      return {
-        ...log,
-        engineerName: eng?.name ?? null,
-        engineerEmail: eng?.email ?? null,
-      };
+      return { ...log, engineerName: eng?.name ?? null, engineerEmail: eng?.email ?? null };
     }));
 
     res.json({ items: enriched, total: Number(total), page: pageNum, limit });
@@ -374,7 +577,7 @@ router.get("/admin/verification-logs", requireAuth, requireRole("admin"), async 
 
 // ── Complaints ────────────────────────────────────────────────────────────────
 
-router.get("/admin/complaints", requireAuth, requireRole("admin"), async (req, res) => {
+router.get("/admin/complaints", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const { status, page = "1" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
@@ -385,7 +588,6 @@ router.get("/admin/complaints", requireAuth, requireRole("admin"), async (req, r
     if (status) query = query.where(eq(complaintsTable.status, status));
 
     const all = await query.orderBy(desc(complaintsTable.createdAt)).limit(limit).offset(offset);
-    // Count filtered total (matches status filter if applied)
     let countQuery = db.select({ total: sql<number>`count(*)` }).from(complaintsTable).$dynamic();
     if (status) countQuery = countQuery.where(eq(complaintsTable.status, status));
     const [{ total }] = await countQuery;
@@ -393,7 +595,6 @@ router.get("/admin/complaints", requireAuth, requireRole("admin"), async (req, r
     const enriched = await Promise.all(all.map(async (c) => {
       const [reporter] = await db.select().from(usersTable).where(eq(usersTable.id, c.reporterId)).limit(1);
 
-      // Fetch full message transcript for the chat room (admin has full access)
       const messages = await db.select().from(messagesTable)
         .where(eq(messagesTable.roomId, c.roomId))
         .orderBy(sql`${messagesTable.createdAt} asc`);
@@ -424,7 +625,7 @@ router.get("/admin/complaints", requireAuth, requireRole("admin"), async (req, r
   }
 });
 
-router.patch("/admin/complaints/:complaintId/resolve", requireAuth, requireRole("admin"), async (req, res) => {
+router.patch("/admin/complaints/:complaintId/resolve", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const complaintId = parseInt(req.params.complaintId as string);
     const [updated] = await db.update(complaintsTable)
@@ -435,18 +636,14 @@ router.patch("/admin/complaints/:complaintId/resolve", requireAuth, requireRole(
     if (!updated) { res.status(404).json({ error: "Complaint not found" }); return; }
 
     const [reporter] = await db.select().from(usersTable).where(eq(usersTable.id, updated.reporterId)).limit(1);
-    res.json({
-      ...updated,
-      reporterName: reporter?.name ?? null,
-      resolvedAt: updated.resolvedAt?.toISOString() ?? null,
-    });
+    res.json({ ...updated, reporterName: reporter?.name ?? null, resolvedAt: updated.resolvedAt?.toISOString() ?? null });
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-router.post("/admin/engineers/:id/reverify", requireAuth, requireRole("admin"), async (req, res) => {
+router.post("/admin/engineers/:id/reverify", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const engineerId = parseInt(req.params.id as string);
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, engineerId)).limit(1);
@@ -488,18 +685,26 @@ router.post("/admin/engineers/:id/reverify", requireAuth, requireRole("admin"), 
 
     const worksCount = record.worksCount;
     const rejectionRate = worksCount > 0 ? record.rejectionsCount / worksCount : 0;
-    const newRating = computeRatingFromRosreestr(record);
+    const rosreestrBaseRating = computeRatingFromRosreestr(record);
+
+    // Weighted rating: use published reviews + rosreestr score
+    const publishedReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
+      .where(and(eq(reviewsTable.engineerId, engineerId), eq(reviewsTable.moderationStatus, "published")));
+
+    const rosreestrScore = rosreestrBaseRating > 0 ? rosreestrBaseRating : null;
+    const newRating = calculateWeightedRating(publishedReviews, rosreestrScore);
 
     await db.update(engineersTable).set({
       isVerified: true,
       rosreestrStatus: record.status,
       sroName: record.sroName,
+      sro: record.sroName,
       rosreestrCheckedAt: new Date(),
       rosreestrWorksCount: record.worksCount,
       rosreestrRejectionsCount: record.rejectionsCount,
       rosreestrSuspensionsCount: record.suspensionsCount,
       rosreestrRejectionRate: Math.round(rejectionRate * 1000) / 1000,
-      rating: newRating,
+      rating: newRating > 0 ? newRating : rosreestrBaseRating,
     }).where(eq(engineersTable.id, engineerId));
 
     await db.insert(verificationLogsTable).values({

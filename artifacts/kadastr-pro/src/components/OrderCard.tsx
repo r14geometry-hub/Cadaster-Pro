@@ -5,7 +5,10 @@ import { MapPin, Calendar, Banknote, Users } from "lucide-react";
 import type { Order } from "@workspace/api-client-react";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
+  new: { label: "Новая", className: "bg-blue-50 text-blue-700 border-blue-200" },
   open: { label: "Открыта", className: "bg-blue-50 text-blue-700 border-blue-200" },
+  collecting_responses: { label: "Сбор откликов", className: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  engineer_selected: { label: "Инженер выбран", className: "bg-purple-50 text-purple-700 border-purple-200" },
   in_progress: { label: "В работе", className: "bg-yellow-50 text-yellow-700 border-yellow-200" },
   completed: { label: "Завершена", className: "bg-green-50 text-green-700 border-green-200" },
   cancelled: { label: "Отменена", className: "bg-gray-100 text-gray-600 border-gray-200" },

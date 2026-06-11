@@ -15,19 +15,24 @@ import { ClipboardList, MessageSquare, ChevronRight, Plus } from "lucide-react";
 import type { Order } from "@workspace/api-client-react";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-  draft:       { label: "Черновик",  className: "bg-gray-100 text-gray-600 border-gray-200" },
-  open:        { label: "Открыта",   className: "bg-blue-50 text-blue-700 border-blue-200" },
-  in_progress: { label: "В работе",  className: "bg-amber-50 text-amber-700 border-amber-200" },
-  completed:   { label: "Завершена", className: "bg-green-50 text-green-700 border-green-200" },
-  cancelled:   { label: "Отменена",  className: "bg-gray-100 text-gray-500 border-gray-200" },
+  draft:                { label: "Черновик",        className: "bg-gray-100 text-gray-600 border-gray-200" },
+  new:                  { label: "Новая",           className: "bg-blue-50 text-blue-700 border-blue-200" },
+  open:                 { label: "Открыта",         className: "bg-blue-50 text-blue-700 border-blue-200" },
+  collecting_responses: { label: "Сбор откликов",  className: "bg-indigo-50 text-indigo-700 border-indigo-200" },
+  engineer_selected:    { label: "Инженер выбран", className: "bg-teal-50 text-teal-700 border-teal-200" },
+  in_progress:          { label: "В работе",        className: "bg-amber-50 text-amber-700 border-amber-200" },
+  completed:            { label: "Завершена",       className: "bg-green-50 text-green-700 border-green-200" },
+  cancelled:            { label: "Отменена",        className: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
 const ORDER_FILTER_TABS = [
-  { value: "all",         label: "Все" },
-  { value: "open",        label: "Открытые" },
-  { value: "in_progress", label: "В работе" },
-  { value: "completed",   label: "Завершённые" },
-  { value: "draft",       label: "Черновики" },
+  { value: "all",                 label: "Все" },
+  { value: "new",                 label: "Новые" },
+  { value: "collecting_responses", label: "Сбор откликов" },
+  { value: "engineer_selected",   label: "Инженер выбран" },
+  { value: "in_progress",         label: "В работе" },
+  { value: "completed",           label: "Завершённые" },
+  { value: "draft",               label: "Черновики" },
 ];
 
 function OrderRow({ order }: { order: Order }) {

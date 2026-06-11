@@ -13,8 +13,21 @@ async function formatReview(review: typeof reviewsTable.$inferSelect) {
     comment: review.comment ?? null,
     serviceType: review.serviceType ?? null,
     isVerifiedPurchase: review.isVerifiedPurchase ?? true,
+    moderationStatus: review.moderationStatus ?? "pending",
     author: { ...safeAuthor, phone: safeAuthor.phone ?? null, avatarUrl: safeAuthor.avatarUrl ?? null },
   };
+}
+
+export function calculateWeightedRating(publishedReviews: { rating: number }[], rosreestrScore: number | null): number {
+  if (publishedReviews.length === 0 && !rosreestrScore) return 0;
+  const userAvg = publishedReviews.length > 0
+    ? publishedReviews.reduce((s, r) => s + r.rating, 0) / publishedReviews.length
+    : 0;
+  if (rosreestrScore !== null && rosreestrScore > 0) {
+    if (publishedReviews.length === 0) return Math.round(rosreestrScore * 10) / 10;
+    return Math.round((userAvg * 0.7 + rosreestrScore * 0.3) * 10) / 10;
+  }
+  return Math.round(userAvg * 10) / 10;
 }
 
 router.post("/reviews", requireAuth, async (req, res) => {
@@ -27,16 +40,8 @@ router.post("/reviews", requireAuth, async (req, res) => {
       orderId, engineerId, authorId: req.user!.userId,
       rating, comment: comment ?? null,
       isVerifiedPurchase: true,
+      moderationStatus: "pending",
     }).returning();
-
-    // Recalculate engineer rating from all reviews
-    const allReviews = await db.select({ rating: reviewsTable.rating }).from(reviewsTable)
-      .where(eq(reviewsTable.engineerId, engineerId));
-    const avgRating = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
-    await db.update(engineersTable).set({
-      rating: Math.round(avgRating * 10) / 10,
-      reviewCount: allReviews.length,
-    }).where(eq(engineersTable.id, engineerId));
 
     res.status(201).json(await formatReview(review));
   } catch (err) {
@@ -47,11 +52,13 @@ router.post("/reviews", requireAuth, async (req, res) => {
 
 router.get("/engineers/:engineerId/reviews", async (req, res) => {
   try {
-    const engineerId = parseInt(req.params.engineerId);
+    const engineerId = parseInt(req.params.engineerId as string);
     const reviews = await db.select().from(reviewsTable)
       .where(eq(reviewsTable.engineerId, engineerId))
       .orderBy(sql`${reviewsTable.createdAt} desc`);
-    res.json(await Promise.all(reviews.map(formatReview)));
+
+    const published = reviews.filter(r => r.moderationStatus === "published" || r.moderationStatus === null);
+    res.json(await Promise.all(published.map(formatReview)));
   } catch (err) {
     req.log.error(err);
     res.status(500).json({ error: "Server error" });

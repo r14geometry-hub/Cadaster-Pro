@@ -23,6 +23,9 @@ import type {
   AdminEngineerList,
   AdminEngineerResult,
   AdminEngineerUpdate,
+  AdminReviewItem,
+  AdminReviewList,
+  AdminReviewUpdate,
   AdminStats,
   AdminUserUpdate,
   AuthResult,
@@ -41,6 +44,8 @@ import type {
   EngineerDebtSummary,
   EngineerList,
   EngineerUpdate,
+  EngineerVisibilityResult,
+  EngineerVisibilityUpdate,
   FileUploadResult,
   GetMyLeadsParams,
   HealthStatus,
@@ -53,6 +58,7 @@ import type {
   ListAdminEngineersParams,
   ListAdminLeadsParams,
   ListAdminOrdersParams,
+  ListAdminReviewsParams,
   ListAdminUsersParams,
   ListAdminVerificationLogsParams,
   ListEngineersParams,
@@ -77,6 +83,7 @@ import type {
   UploadUrlResponse,
   User,
   UserList,
+  UserRoleUpdate,
   VerificationLogList,
   VerifyInput,
   VerifyResult
@@ -3948,6 +3955,220 @@ export function useListAdminEngineers<TData = Awaited<ReturnType<typeof listAdmi
 
 
 
+export const getSetUserRoleUrl = (userId: number,) => {
+
+
+
+
+  return `/api/admin/users/${userId}/role`
+}
+
+/**
+ * @summary Change user role (superadmin only)
+ */
+export const setUserRole = async (userId: number,
+    userRoleUpdate: UserRoleUpdate, options?: RequestInit): Promise<User> => {
+
+  return customFetch<User>(getSetUserRoleUrl(userId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      userRoleUpdate,)
+  }
+);}
+
+
+
+
+export const getSetUserRoleMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserRole>>, TError,{userId: number;data: BodyType<UserRoleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setUserRole>>, TError,{userId: number;data: BodyType<UserRoleUpdate>}, TContext> => {
+
+const mutationKey = ['setUserRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setUserRole>>, {userId: number;data: BodyType<UserRoleUpdate>}> = (props) => {
+          const {userId,data} = props ?? {};
+
+          return  setUserRole(userId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetUserRoleMutationResult = NonNullable<Awaited<ReturnType<typeof setUserRole>>>
+    export type SetUserRoleMutationBody = BodyType<UserRoleUpdate>
+    export type SetUserRoleMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Change user role (superadmin only)
+ */
+export const useSetUserRole = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setUserRole>>, TError,{userId: number;data: BodyType<UserRoleUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setUserRole>>,
+        TError,
+        {userId: number;data: BodyType<UserRoleUpdate>},
+        TContext
+      > => {
+      return useMutation(getSetUserRoleMutationOptions(options));
+    }
+
+export const getSetEngineerVisibilityUrl = (engineerId: number,) => {
+
+
+
+
+  return `/api/admin/engineers/${engineerId}/visibility`
+}
+
+/**
+ * @summary Show or hide an engineer profile (admin)
+ */
+export const setEngineerVisibility = async (engineerId: number,
+    engineerVisibilityUpdate: EngineerVisibilityUpdate, options?: RequestInit): Promise<EngineerVisibilityResult> => {
+
+  return customFetch<EngineerVisibilityResult>(getSetEngineerVisibilityUrl(engineerId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      engineerVisibilityUpdate,)
+  }
+);}
+
+
+
+
+export const getSetEngineerVisibilityMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEngineerVisibility>>, TError,{engineerId: number;data: BodyType<EngineerVisibilityUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setEngineerVisibility>>, TError,{engineerId: number;data: BodyType<EngineerVisibilityUpdate>}, TContext> => {
+
+const mutationKey = ['setEngineerVisibility'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setEngineerVisibility>>, {engineerId: number;data: BodyType<EngineerVisibilityUpdate>}> = (props) => {
+          const {engineerId,data} = props ?? {};
+
+          return  setEngineerVisibility(engineerId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetEngineerVisibilityMutationResult = NonNullable<Awaited<ReturnType<typeof setEngineerVisibility>>>
+    export type SetEngineerVisibilityMutationBody = BodyType<EngineerVisibilityUpdate>
+    export type SetEngineerVisibilityMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Show or hide an engineer profile (admin)
+ */
+export const useSetEngineerVisibility = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setEngineerVisibility>>, TError,{engineerId: number;data: BodyType<EngineerVisibilityUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setEngineerVisibility>>,
+        TError,
+        {engineerId: number;data: BodyType<EngineerVisibilityUpdate>},
+        TContext
+      > => {
+      return useMutation(getSetEngineerVisibilityMutationOptions(options));
+    }
+
+export const getDeleteAdminEngineerUrl = (engineerId: number,) => {
+
+
+
+
+  return `/api/admin/engineers/${engineerId}`
+}
+
+/**
+ * @summary Delete engineer profile (admin)
+ */
+export const deleteAdminEngineer = async (engineerId: number, options?: RequestInit): Promise<MessageResponse> => {
+
+  return customFetch<MessageResponse>(getDeleteAdminEngineerUrl(engineerId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteAdminEngineerMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminEngineer>>, TError,{engineerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteAdminEngineer>>, TError,{engineerId: number}, TContext> => {
+
+const mutationKey = ['deleteAdminEngineer'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteAdminEngineer>>, {engineerId: number}> = (props) => {
+          const {engineerId} = props ?? {};
+
+          return  deleteAdminEngineer(engineerId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteAdminEngineerMutationResult = NonNullable<Awaited<ReturnType<typeof deleteAdminEngineer>>>
+
+    export type DeleteAdminEngineerMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Delete engineer profile (admin)
+ */
+export const useDeleteAdminEngineer = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteAdminEngineer>>, TError,{engineerId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteAdminEngineer>>,
+        TError,
+        {engineerId: number},
+        TContext
+      > => {
+      return useMutation(getDeleteAdminEngineerMutationOptions(options));
+    }
+
 export const getUpdateAdminEngineerUrl = (engineerId: number,) => {
 
 
@@ -4018,6 +4239,162 @@ export const useUpdateAdminEngineer = <TError = ErrorType<unknown>,
         TContext
       > => {
       return useMutation(getUpdateAdminEngineerMutationOptions(options));
+    }
+
+export const getListAdminReviewsUrl = (params?: ListAdminReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/admin/reviews?${stringifiedParams}` : `/api/admin/reviews`
+}
+
+/**
+ * @summary List all reviews for moderation (admin)
+ */
+export const listAdminReviews = async (params?: ListAdminReviewsParams, options?: RequestInit): Promise<AdminReviewList> => {
+
+  return customFetch<AdminReviewList>(getListAdminReviewsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListAdminReviewsQueryKey = (params?: ListAdminReviewsParams,) => {
+    return [
+    `/api/admin/reviews`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListAdminReviewsQueryOptions = <TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorType<unknown>>(params?: ListAdminReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListAdminReviewsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listAdminReviews>>> = ({ signal }) => listAdminReviews(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListAdminReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof listAdminReviews>>>
+export type ListAdminReviewsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List all reviews for moderation (admin)
+ */
+
+export function useListAdminReviews<TData = Awaited<ReturnType<typeof listAdminReviews>>, TError = ErrorType<unknown>>(
+ params?: ListAdminReviewsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listAdminReviews>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListAdminReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getModerateReviewUrl = (reviewId: number,) => {
+
+
+
+
+  return `/api/admin/reviews/${reviewId}`
+}
+
+/**
+ * @summary Publish or hide a review (admin)
+ */
+export const moderateReview = async (reviewId: number,
+    adminReviewUpdate: AdminReviewUpdate, options?: RequestInit): Promise<AdminReviewItem> => {
+
+  return customFetch<AdminReviewItem>(getModerateReviewUrl(reviewId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      adminReviewUpdate,)
+  }
+);}
+
+
+
+
+export const getModerateReviewMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateReview>>, TError,{reviewId: number;data: BodyType<AdminReviewUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof moderateReview>>, TError,{reviewId: number;data: BodyType<AdminReviewUpdate>}, TContext> => {
+
+const mutationKey = ['moderateReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moderateReview>>, {reviewId: number;data: BodyType<AdminReviewUpdate>}> = (props) => {
+          const {reviewId,data} = props ?? {};
+
+          return  moderateReview(reviewId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModerateReviewMutationResult = NonNullable<Awaited<ReturnType<typeof moderateReview>>>
+    export type ModerateReviewMutationBody = BodyType<AdminReviewUpdate>
+    export type ModerateReviewMutationError = ErrorType<unknown>
+
+    /**
+ * @summary Publish or hide a review (admin)
+ */
+export const useModerateReview = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateReview>>, TError,{reviewId: number;data: BodyType<AdminReviewUpdate>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof moderateReview>>,
+        TError,
+        {reviewId: number;data: BodyType<AdminReviewUpdate>},
+        TContext
+      > => {
+      return useMutation(getModerateReviewMutationOptions(options));
     }
 
 export const getListAdminVerificationLogsUrl = (params?: ListAdminVerificationLogsParams,) => {

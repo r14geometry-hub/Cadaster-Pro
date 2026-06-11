@@ -20,6 +20,11 @@ import {
   useGetAdminLeadsSummary, getGetAdminLeadsSummaryQueryKey,
   useListAdminEngineers, getListAdminEngineersQueryKey,
   useUpdateAdminEngineer,
+  useSetEngineerVisibility,
+  useDeleteAdminEngineer,
+  useListAdminReviews, getListAdminReviewsQueryKey,
+  useModerateReview,
+  useSetUserRole,
   useGetAdminSettings, getGetAdminSettingsQueryKey,
   useUpdateAdminSettings,
   useListAdminVerificationLogs, getListAdminVerificationLogsQueryKey,
@@ -30,9 +35,37 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck, RefreshCw, MessageSquare } from "lucide-react";
+import {
+  Users, ClipboardList, Shield, Sparkles, Wallet, AlertTriangle, ShieldCheck,
+  RefreshCw, MessageSquare, Eye, EyeOff, Trash2, Star, CheckCircle2, TrendingDown,
+} from "lucide-react";
 
 const DEBT_LIMIT = 3000;
+
+const ALL_ROLES = ["customer", "engineer", "admin", "superadmin"];
+const ROLE_LABELS: Record<string, string> = {
+  customer: "Заказчик",
+  engineer: "Инженер",
+  admin: "Администратор",
+  superadmin: "Суперадмин",
+};
+
+const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
+  new:                  { label: "Новая",             className: "bg-blue-50 text-blue-700" },
+  open:                 { label: "Открыта",           className: "bg-blue-50 text-blue-700" },
+  collecting_responses: { label: "Сбор откликов",     className: "bg-indigo-50 text-indigo-700" },
+  engineer_selected:    { label: "Инженер выбран",    className: "bg-teal-50 text-teal-700" },
+  in_progress:          { label: "В работе",          className: "bg-yellow-50 text-yellow-700" },
+  completed:            { label: "Завершена",          className: "bg-green-50 text-green-700" },
+  cancelled:            { label: "Отменена",           className: "bg-gray-100 text-gray-600" },
+  draft:                { label: "Черновик",           className: "bg-gray-50 text-gray-500" },
+};
+
+const MODERATION_CONFIG: Record<string, { label: string; className: string }> = {
+  pending:   { label: "На модерации", className: "bg-amber-50 text-amber-700 border-amber-200" },
+  published: { label: "Опубликован",  className: "bg-green-50 text-green-700 border-green-200" },
+  hidden:    { label: "Скрыт",        className: "bg-gray-100 text-gray-500 border-gray-200" },
+};
 
 export default function AdminPage() {
   const { user } = useAuth();
@@ -41,42 +74,56 @@ export default function AdminPage() {
   const queryClient = useQueryClient();
   const [editingPrices, setEditingPrices] = useState<Record<string, number>>({});
   const [editingSettings, setEditingSettings] = useState<Record<string, string>>({});
+  const [reviewFilter, setReviewFilter] = useState<string>("pending");
+
+  const isSuperAdmin = user?.role === "superadmin";
+  const isAdmin = user?.role === "admin" || isSuperAdmin;
 
   const { data: stats, isLoading: statsLoading } = useGetAdminStats({
-    query: { enabled: user?.role === "admin", queryKey: getGetAdminStatsQueryKey() },
+    query: { enabled: isAdmin, queryKey: getGetAdminStatsQueryKey() },
   });
 
   const { data: users, isLoading: usersLoading } = useListAdminUsers(
     {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminUsersQueryKey({}) } }
+    { query: { enabled: isAdmin, queryKey: getListAdminUsersQueryKey({}) } }
   );
 
   const { data: orders, isLoading: ordersLoading } = useListAdminOrders(
     {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminOrdersQueryKey({}) } }
+    { query: { enabled: isAdmin, queryKey: getListAdminOrdersQueryKey({}) } }
   );
 
   const { data: leadPrices, isLoading: leadPricesLoading } = useGetAdminLeadPrices({
-    query: { enabled: user?.role === "admin", queryKey: getGetAdminLeadPricesQueryKey() },
+    query: { enabled: isAdmin, queryKey: getGetAdminLeadPricesQueryKey() },
   });
 
   const { data: leadsData, isLoading: leadsLoading } = useListAdminLeads(
     {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminLeadsQueryKey({}) } }
+    { query: { enabled: isAdmin, queryKey: getListAdminLeadsQueryKey({}) } }
   );
 
   const { data: debtSummary, isLoading: debtSummaryLoading } = useGetAdminLeadsSummary({
-    query: { enabled: user?.role === "admin", queryKey: getGetAdminLeadsSummaryQueryKey() },
+    query: { enabled: isAdmin, queryKey: getGetAdminLeadsSummaryQueryKey() },
   });
 
   const { data: adminEngineers, isLoading: engineersLoading } = useListAdminEngineers(
     {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminEngineersQueryKey({}) } }
+    { query: { enabled: isAdmin, queryKey: getListAdminEngineersQueryKey({}) } }
+  );
+
+  const { data: adminReviews, isLoading: reviewsLoading } = useListAdminReviews(
+    { moderationStatus: reviewFilter || undefined },
+    { query: { enabled: isAdmin, queryKey: getListAdminReviewsQueryKey({ moderationStatus: reviewFilter || undefined }) } }
   );
 
   const { data: verificationLogs, isLoading: logsLoading } = useListAdminVerificationLogs(
     {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminVerificationLogsQueryKey({}) } }
+    { query: { enabled: isAdmin, queryKey: getListAdminVerificationLogsQueryKey({}) } }
+  );
+
+  const { data: complaintsData, isLoading: complaintsLoading } = useListAdminComplaints(
+    {},
+    { query: { enabled: isAdmin, queryKey: getListAdminComplaintsQueryKey({}) } }
   );
 
   const updateUser = useUpdateAdminUser({
@@ -85,6 +132,16 @@ export default function AdminPage() {
         queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey({}) });
         toast({ title: "Пользователь обновлён" });
       },
+    },
+  });
+
+  const setUserRole = useSetUserRole({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAdminUsersQueryKey({}) });
+        toast({ title: "Роль изменена" });
+      },
+      onError: () => toast({ title: "Ошибка", variant: "destructive" }),
     },
   });
 
@@ -118,10 +175,37 @@ export default function AdminPage() {
     },
   });
 
-  const { data: complaintsData, isLoading: complaintsLoading } = useListAdminComplaints(
-    {},
-    { query: { enabled: user?.role === "admin", queryKey: getListAdminComplaintsQueryKey({}) } }
-  );
+  const setVisibility = useSetEngineerVisibility({
+    mutation: {
+      onSuccess: (_, vars) => {
+        queryClient.invalidateQueries({ queryKey: getListAdminEngineersQueryKey({}) });
+        toast({ title: vars.data.isHidden ? "Профиль скрыт" : "Профиль показан" });
+      },
+      onError: () => toast({ title: "Ошибка", variant: "destructive" }),
+    },
+  });
+
+  const deleteEngineer = useDeleteAdminEngineer({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAdminEngineersQueryKey({}) });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        toast({ title: "Инженер удалён" });
+      },
+      onError: () => toast({ title: "Ошибка", variant: "destructive" }),
+    },
+  });
+
+  const moderateReview = useModerateReview({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: getListAdminReviewsQueryKey({ moderationStatus: reviewFilter || undefined }) });
+        queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+        toast({ title: "Статус отзыва изменён" });
+      },
+      onError: () => toast({ title: "Ошибка", variant: "destructive" }),
+    },
+  });
 
   const resolveComplaint = useResolveComplaint({
     mutation: {
@@ -147,7 +231,7 @@ export default function AdminPage() {
     },
   });
 
-  if (!user || user.role !== "admin") {
+  if (!isAdmin) {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <Shield className="w-12 h-12 mx-auto mb-4 text-muted-foreground/40" />
@@ -157,14 +241,6 @@ export default function AdminPage() {
       </div>
     );
   }
-
-  const ROLE_LABELS: Record<string, string> = { customer: "Заказчик", engineer: "Инженер", admin: "Администратор" };
-  const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    open: { label: "Открыта", className: "bg-blue-50 text-blue-700" },
-    in_progress: { label: "В работе", className: "bg-yellow-50 text-yellow-700" },
-    completed: { label: "Завершена", className: "bg-green-50 text-green-700" },
-    cancelled: { label: "Отменена", className: "bg-gray-100 text-gray-600" },
-  };
 
   const handleSavePrices = () => {
     if (!leadPrices) return;
@@ -179,30 +255,34 @@ export default function AdminPage() {
     <div className="container mx-auto px-4 py-10">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-foreground mb-1" data-testid="heading-admin">Панель управления</h1>
-        <p className="text-muted-foreground">КадастрПро Administration</p>
+        <p className="text-muted-foreground">
+          КадастрПро Administration{isSuperAdmin && <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">Суперадмин</span>}
+        </p>
       </div>
 
       {/* Stats Cards */}
       {statsLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28 rounded-xl" />)}
         </div>
       ) : stats && (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
           {[
-            { label: "Всего пользователей", value: stats.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+            { label: "Пользователей", value: stats.totalUsers, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
             { label: "Инженеров", value: stats.totalEngineers, icon: Shield, color: "text-green-600", bg: "bg-green-50" },
+            { label: "Верифицировано", value: stats.verifiedEngineers, icon: ShieldCheck, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "Всего заявок", value: stats.totalOrders, icon: ClipboardList, color: "text-purple-600", bg: "bg-purple-50" },
+            { label: "Отзывов на модерации", value: stats.pendingReviews, icon: Star, color: "text-amber-600", bg: "bg-amber-50" },
             { label: "Долг (неоплачено)", value: `${stats.totalRevenue.toLocaleString("ru-RU")} ₽`, icon: Wallet, color: "text-orange-600", bg: "bg-orange-50" },
           ].map(({ label, value, icon: Icon, color, bg }) => (
             <Card key={label} data-testid={`stat-card-${label}`}>
-              <CardContent className="p-5 flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
-                  <Icon className={`w-6 h-6 ${color}`} />
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-foreground">{value}</p>
-                  <p className="text-sm text-muted-foreground">{label}</p>
+                  <p className="text-xl font-bold text-foreground">{value}</p>
+                  <p className="text-xs text-muted-foreground">{label}</p>
                 </div>
               </CardContent>
             </Card>
@@ -214,6 +294,15 @@ export default function AdminPage() {
         <TabsList className="mb-6 flex-wrap h-auto gap-1">
           <TabsTrigger value="users" data-testid="tab-admin-users">Пользователи</TabsTrigger>
           <TabsTrigger value="orders" data-testid="tab-admin-orders">Заявки</TabsTrigger>
+          <TabsTrigger value="engineers-mod" data-testid="tab-admin-engineers-mod">Инженеры</TabsTrigger>
+          <TabsTrigger value="reviews" data-testid="tab-admin-reviews">
+            Отзывы
+            {stats && stats.pendingReviews > 0 && (
+              <span className="ml-1.5 bg-amber-500 text-white text-xs font-semibold rounded-full px-1.5 py-0.5">
+                {stats.pendingReviews}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="leads" data-testid="tab-admin-leads">Учёт лидов</TabsTrigger>
           <TabsTrigger value="engineers-pro" data-testid="tab-admin-engineers-pro">PRO и Буст</TabsTrigger>
           <TabsTrigger value="verification" data-testid="tab-admin-verification">Логи проверок</TabsTrigger>
@@ -227,7 +316,7 @@ export default function AdminPage() {
           </TabsTrigger>
         </TabsList>
 
-        {/* Users */}
+        {/* ── Users ─────────────────────────────────────────────────────────── */}
         <TabsContent value="users">
           <Card>
             <CardHeader><CardTitle className="text-base">Пользователи платформы</CardTitle></CardHeader>
@@ -251,7 +340,23 @@ export default function AdminPage() {
                           <TableCell className="font-medium">{u.name}</TableCell>
                           <TableCell className="text-muted-foreground">{u.email}</TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{ROLE_LABELS[u.role] ?? u.role}</Badge>
+                            {isSuperAdmin && u.id !== user!.id ? (
+                              <Select
+                                value={u.role}
+                                onValueChange={(role) => setUserRole.mutate({ userId: u.id, data: { role } })}
+                              >
+                                <SelectTrigger className="h-7 w-36 text-xs" data-testid={`select-role-${u.id}`}>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {ALL_ROLES.map(r => (
+                                    <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            ) : (
+                              <Badge variant="secondary">{ROLE_LABELS[u.role] ?? u.role}</Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge variant={u.isBlocked === "true" ? "destructive" : "secondary"}>
@@ -262,7 +367,7 @@ export default function AdminPage() {
                             {new Date(u.createdAt).toLocaleDateString("ru-RU")}
                           </TableCell>
                           <TableCell>
-                            {u.id !== user.id && (
+                            {u.id !== user!.id && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -283,7 +388,7 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Orders */}
+        {/* ── Orders ─────────────────────────────────────────────────────────── */}
         <TabsContent value="orders">
           <Card>
             <CardHeader><CardTitle className="text-base">Все заявки</CardTitle></CardHeader>
@@ -327,7 +432,237 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Lead Billing */}
+        {/* ── Engineers Moderation ───────────────────────────────────────────── */}
+        <TabsContent value="engineers-mod">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Модерация профилей инженеров</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {engineersLoading ? <Skeleton className="h-64 rounded" /> : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Инженер</TableHead>
+                        <TableHead>Регион / СРО</TableHead>
+                        <TableHead>Рейтинг</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead>Росреестр</TableHead>
+                        <TableHead>Видимость</TableHead>
+                        <TableHead>Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {adminEngineers?.items.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">Инженеры не найдены</TableCell>
+                        </TableRow>
+                      )}
+                      {adminEngineers?.items.map((eng) => (
+                        <TableRow key={eng.id} data-testid={`row-engineer-mod-${eng.id}`} className={eng.isHidden ? "opacity-60" : ""}>
+                          <TableCell>
+                            <div>
+                              <p className="font-medium text-sm">{eng.name}</p>
+                              <p className="text-xs text-muted-foreground">{eng.email}</p>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-muted-foreground">{eng.region}</p>
+                            {eng.sroName && <p className="text-xs text-muted-foreground truncate max-w-[130px]">{eng.sroName}</p>}
+                          </TableCell>
+                          <TableCell className="text-sm">{eng.rating.toFixed(1)}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              {eng.isVerified ? (
+                                <Badge className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200 gap-1">
+                                  <ShieldCheck className="w-3 h-3" /> Верифицирован
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary" className="text-xs">Не верифицирован</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-0.5">
+                              {eng.attestatNumber ? (
+                                <p className="text-xs font-mono text-muted-foreground">{eng.attestatNumber}</p>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">—</p>
+                              )}
+                              {eng.rosreestrRejectionRate !== null && eng.rosreestrRejectionRate !== undefined ? (
+                                <span className={`text-xs flex items-center gap-0.5 ${eng.rosreestrRejectionRate > 0.3 ? "text-red-600" : "text-emerald-600"}`}>
+                                  <TrendingDown className="w-3 h-3" />
+                                  {Math.round(eng.rosreestrRejectionRate * 100)}% отказов
+                                </span>
+                              ) : null}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={eng.isHidden ? "secondary" : "outline"} className={eng.isHidden ? "bg-gray-100 text-gray-500" : "bg-green-50 text-green-700 border-green-200"}>
+                              {eng.isHidden ? <><EyeOff className="w-3 h-3 mr-1 inline" />Скрыт</> : <><Eye className="w-3 h-3 mr-1 inline" />Виден</>}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                onClick={() => setVisibility.mutate({ engineerId: eng.id, data: { isHidden: !eng.isHidden } })}
+                                disabled={setVisibility.isPending}
+                                data-testid={`button-visibility-${eng.id}`}
+                              >
+                                {eng.isHidden ? <><Eye className="w-3 h-3" /> Показать</> : <><EyeOff className="w-3 h-3" /> Скрыть</>}
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+                                onClick={() => reverify.mutate({ id: eng.id })}
+                                disabled={reverify.isPending}
+                                data-testid={`button-reverify-mod-${eng.id}`}
+                              >
+                                <RefreshCw className="w-3 h-3" /> Верифицировать
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50 gap-1"
+                                onClick={() => {
+                                  if (window.confirm(`Удалить инженера ${eng.name} и его аккаунт? Это действие необратимо.`)) {
+                                    deleteEngineer.mutate({ engineerId: eng.id });
+                                  }
+                                }}
+                                disabled={deleteEngineer.isPending}
+                                data-testid={`button-delete-engineer-${eng.id}`}
+                              >
+                                <Trash2 className="w-3 h-3" /> Удалить
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Reviews Moderation ────────────────────────────────────────────── */}
+        <TabsContent value="reviews">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Star className="w-5 h-5 text-amber-500" /> Модерация отзывов
+                </CardTitle>
+                <Select value={reviewFilter} onValueChange={setReviewFilter}>
+                  <SelectTrigger className="w-44 h-8 text-sm" data-testid="select-review-filter">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">На модерации</SelectItem>
+                    <SelectItem value="published">Опубликованные</SelectItem>
+                    <SelectItem value="hidden">Скрытые</SelectItem>
+                    <SelectItem value="">Все</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {reviewsLoading ? <Skeleton className="h-64 rounded" /> : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Дата</TableHead>
+                        <TableHead>Автор</TableHead>
+                        <TableHead>Инженер</TableHead>
+                        <TableHead>Оценка</TableHead>
+                        <TableHead>Комментарий</TableHead>
+                        <TableHead>Статус</TableHead>
+                        <TableHead>Действия</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(!adminReviews || adminReviews.items.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            Отзывов не найдено
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {adminReviews?.items.map((review) => {
+                        const modCfg = MODERATION_CONFIG[review.moderationStatus] ?? MODERATION_CONFIG.pending;
+                        return (
+                          <TableRow key={review.id} data-testid={`row-review-${review.id}`}>
+                            <TableCell className="text-muted-foreground text-sm whitespace-nowrap">
+                              {new Date(review.createdAt).toLocaleDateString("ru-RU")}
+                            </TableCell>
+                            <TableCell>
+                              <p className="font-medium text-sm">{review.authorName}</p>
+                              <p className="text-xs text-muted-foreground">{review.authorEmail}</p>
+                            </TableCell>
+                            <TableCell className="text-sm">{review.engineerName}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                {Array.from({ length: review.rating }).map((_, i) => (
+                                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                                ))}
+                                <span className="text-xs text-muted-foreground ml-1">{review.rating}/5</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="max-w-xs">
+                              <p className="text-sm line-clamp-2 text-muted-foreground">{review.comment ?? "—"}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className={modCfg.className} data-testid={`badge-review-status-${review.id}`}>
+                                {modCfg.label}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                {review.moderationStatus !== "published" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs text-green-700 border-green-300 hover:bg-green-50 gap-1"
+                                    onClick={() => moderateReview.mutate({ reviewId: review.id, data: { moderationStatus: "published" } })}
+                                    disabled={moderateReview.isPending}
+                                    data-testid={`button-publish-review-${review.id}`}
+                                  >
+                                    <CheckCircle2 className="w-3 h-3" /> Опубликовать
+                                  </Button>
+                                )}
+                                {review.moderationStatus !== "hidden" && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-xs text-gray-600 border-gray-300 hover:bg-gray-50 gap-1"
+                                    onClick={() => moderateReview.mutate({ reviewId: review.id, data: { moderationStatus: "hidden" } })}
+                                    disabled={moderateReview.isPending}
+                                    data-testid={`button-hide-review-${review.id}`}
+                                  >
+                                    <EyeOff className="w-3 h-3" /> Скрыть
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Lead Billing ─────────────────────────────────────────────────── */}
         <TabsContent value="leads">
           <div className="space-y-6">
             {/* Debt summary */}
@@ -498,7 +833,7 @@ export default function AdminPage() {
           </div>
         </TabsContent>
 
-        {/* PRO & Boost */}
+        {/* ── PRO & Boost ─────────────────────────────────────────────────── */}
         <TabsContent value="engineers-pro">
           <Card>
             <CardHeader><CardTitle className="text-base">Управление PRO-статусом и бустом</CardTitle></CardHeader>
@@ -598,7 +933,7 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Rosreestr Verification Logs */}
+        {/* ── Verification Logs ────────────────────────────────────────────── */}
         <TabsContent value="verification">
           <Card>
             <CardHeader>
@@ -676,7 +1011,7 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Complaints */}
+        {/* ── Complaints ────────────────────────────────────────────────────── */}
         <TabsContent value="complaints">
           <Card>
             <CardHeader>

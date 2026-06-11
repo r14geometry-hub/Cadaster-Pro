@@ -78,8 +78,8 @@ export default function EngineerDashboardPage() {
   });
 
   const { data: openOrders, isLoading: ordersLoading } = useListOrders(
-    { status: "open" },
-    { query: { enabled: !!user, queryKey: getListOrdersQueryKey({ status: "open" }) } }
+    { limit: 100 },
+    { query: { enabled: !!user, queryKey: getListOrdersQueryKey({ limit: 100 }) } }
   );
 
   const { data: myBids, isLoading: bidsLoading } = useListEngineerBids(
@@ -276,9 +276,9 @@ export default function EngineerDashboardPage() {
           )}
           {ordersLoading ? (
             <div className="space-y-4">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-36 rounded-lg" />)}</div>
-          ) : openOrders && openOrders.items.length > 0 ? (
+          ) : openOrders && openOrders.items.filter(o => ["new", "open", "collecting_responses"].includes(o.status)).length > 0 ? (
             <div className="space-y-4">
-              {openOrders.items.map((order) => (
+              {openOrders.items.filter(o => ["new", "open", "collecting_responses"].includes(o.status)).map((order) => (
                 <div key={order.id}>
                   <OrderCard order={order} showLink={false} />
                   <div className="mt-2 px-1">

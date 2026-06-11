@@ -83,11 +83,16 @@ export interface Engineer {
   specializations: string[];
   region: string;
   regions: string[];
+  /** @nullable */
+  district?: string | null;
+  /** @nullable */
+  sro?: string | null;
   experience: number;
   /** @nullable */
   bio?: string | null;
   isVerified: boolean;
   isOnline: boolean;
+  isHidden: boolean;
   rating: number;
   reviewCount: number;
   completedOrders: number;
@@ -201,6 +206,7 @@ export interface Review {
   rating: number;
   /** @nullable */
   comment?: string | null;
+  moderationStatus: string;
   createdAt: string;
 }
 
@@ -358,6 +364,8 @@ export interface AdminStats {
   totalOrders: number;
   openOrders: number;
   completedOrders: number;
+  verifiedEngineers: number;
+  pendingReviews: number;
   totalRevenue: number;
   newUsersThisMonth: number;
 }
@@ -440,10 +448,17 @@ export interface AdminEngineerItem {
   region: string;
   rating: number;
   isVerified: boolean;
+  isHidden: boolean;
   isPro: boolean;
   /** @nullable */
   proExpiresAt?: string | null;
   debtAmount: number;
+  /** @nullable */
+  sroName?: string | null;
+  /** @nullable */
+  attestatNumber?: string | null;
+  /** @nullable */
+  rosreestrRejectionRate?: number | null;
   specializations: string[];
   activeBoost?: ProfileBoost;
 }
@@ -460,16 +475,57 @@ export interface AdminEngineerUpdate {
   /** @nullable */
   proExpiresAt?: string | null;
   boostPeriod?: number;
+  isHidden?: boolean;
 }
 
 export interface AdminEngineerResult {
   id: number;
   name: string;
   isPro: boolean;
+  isHidden: boolean;
   /** @nullable */
   proExpiresAt?: string | null;
   debtAmount: number;
   activeBoost?: ProfileBoost;
+}
+
+export interface UserRoleUpdate {
+  role: string;
+}
+
+export interface EngineerVisibilityUpdate {
+  isHidden: boolean;
+}
+
+export interface EngineerVisibilityResult {
+  id: number;
+  isHidden: boolean;
+}
+
+export interface AdminReviewItem {
+  id: number;
+  orderId: number;
+  authorId: number;
+  authorName: string;
+  authorEmail: string;
+  engineerId: number;
+  engineerName: string;
+  rating: number;
+  /** @nullable */
+  comment?: string | null;
+  moderationStatus: string;
+  createdAt: string;
+}
+
+export interface AdminReviewList {
+  items: AdminReviewItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminReviewUpdate {
+  moderationStatus: string;
 }
 
 export interface VerificationLog {
@@ -506,6 +562,9 @@ region?: string;
 specialization?: string;
 minRating?: number;
 search?: string;
+district?: string;
+sro?: string;
+verifiedOnly?: string;
 page?: number;
 limit?: number;
 };
@@ -550,6 +609,11 @@ page?: number;
 };
 
 export type ListAdminEngineersParams = {
+page?: number;
+};
+
+export type ListAdminReviewsParams = {
+moderationStatus?: string;
 page?: number;
 };
 

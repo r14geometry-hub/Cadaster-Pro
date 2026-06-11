@@ -87,6 +87,9 @@ export const ListEngineersQueryParams = zod.object({
   "specialization": zod.coerce.string().optional(),
   "minRating": zod.coerce.number().optional(),
   "search": zod.coerce.string().optional(),
+  "district": zod.coerce.string().optional(),
+  "sro": zod.coerce.string().optional(),
+  "verifiedOnly": zod.coerce.string().optional(),
   "page": zod.coerce.number().optional(),
   "limit": zod.coerce.number().optional()
 })
@@ -111,10 +114,13 @@ export const ListEngineersResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -169,10 +175,13 @@ export const ListTopEngineersResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -259,10 +268,13 @@ export const GetMyEngineerProfileResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -335,10 +347,13 @@ export const UpdateMyEngineerProfileResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -407,10 +422,13 @@ export const GetEngineerResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -586,6 +604,7 @@ export const CompleteOrderResponse = zod.object({
   "engineerId": zod.number(),
   "rating": zod.number(),
   "comment": zod.string().nullish(),
+  "moderationStatus": zod.string(),
   "createdAt": zod.string()
 }).optional()
 })
@@ -734,10 +753,13 @@ export const ListOrderBidsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -847,10 +869,13 @@ export const UpdateBidResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -940,10 +965,13 @@ export const ListEngineerBidsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -1016,6 +1044,7 @@ export const ListEngineerReviewsResponseItem = zod.object({
   "engineerId": zod.number(),
   "rating": zod.number(),
   "comment": zod.string().nullish(),
+  "moderationStatus": zod.string(),
   "createdAt": zod.string()
 })
 export const ListEngineerReviewsResponse = zod.array(ListEngineerReviewsResponseItem)
@@ -1085,10 +1114,13 @@ export const ListChatsResponseItem = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -1192,10 +1224,13 @@ export const CreateChatRoomResponse = zod.object({
   "specializations": zod.array(zod.string()),
   "region": zod.string(),
   "regions": zod.array(zod.string()),
+  "district": zod.string().nullish(),
+  "sro": zod.string().nullish(),
   "experience": zod.number(),
   "bio": zod.string().nullish(),
   "isVerified": zod.boolean(),
   "isOnline": zod.boolean(),
+  "isHidden": zod.boolean(),
   "rating": zod.number(),
   "reviewCount": zod.number(),
   "completedOrders": zod.number(),
@@ -1414,6 +1449,8 @@ export const GetAdminStatsResponse = zod.object({
   "totalOrders": zod.number(),
   "openOrders": zod.number(),
   "completedOrders": zod.number(),
+  "verifiedEngineers": zod.number(),
+  "pendingReviews": zod.number(),
   "totalRevenue": zod.number(),
   "newUsersThisMonth": zod.number()
 })
@@ -1644,9 +1681,13 @@ export const ListAdminEngineersResponse = zod.object({
   "region": zod.string(),
   "rating": zod.number(),
   "isVerified": zod.boolean(),
+  "isHidden": zod.boolean(),
   "isPro": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
+  "sroName": zod.string().nullish(),
+  "attestatNumber": zod.string().nullish(),
+  "rosreestrRejectionRate": zod.number().nullish(),
   "specializations": zod.array(zod.string()),
   "activeBoost": zod.object({
   "id": zod.number(),
@@ -1663,6 +1704,60 @@ export const ListAdminEngineersResponse = zod.object({
 
 
 /**
+ * @summary Change user role (superadmin only)
+ */
+export const SetUserRoleParams = zod.object({
+  "userId": zod.coerce.number()
+})
+
+export const SetUserRoleBody = zod.object({
+  "role": zod.string()
+})
+
+export const SetUserRoleResponse = zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.string(),
+  "phone": zod.string().nullish(),
+  "telegram": zod.string().nullish(),
+  "whatsapp": zod.string().nullish(),
+  "avatarUrl": zod.string().nullish(),
+  "isBlocked": zod.string().nullish(),
+  "createdAt": zod.string()
+})
+
+
+/**
+ * @summary Show or hide an engineer profile (admin)
+ */
+export const SetEngineerVisibilityParams = zod.object({
+  "engineerId": zod.coerce.number()
+})
+
+export const SetEngineerVisibilityBody = zod.object({
+  "isHidden": zod.boolean()
+})
+
+export const SetEngineerVisibilityResponse = zod.object({
+  "id": zod.number(),
+  "isHidden": zod.boolean()
+})
+
+
+/**
+ * @summary Delete engineer profile (admin)
+ */
+export const DeleteAdminEngineerParams = zod.object({
+  "engineerId": zod.coerce.number()
+})
+
+export const DeleteAdminEngineerResponse = zod.object({
+  "message": zod.string()
+})
+
+
+/**
  * @summary Set PRO status or apply profile boost (admin)
  */
 export const UpdateAdminEngineerParams = zod.object({
@@ -1672,13 +1767,15 @@ export const UpdateAdminEngineerParams = zod.object({
 export const UpdateAdminEngineerBody = zod.object({
   "isPro": zod.boolean().optional(),
   "proExpiresAt": zod.string().nullish(),
-  "boostPeriod": zod.number().optional()
+  "boostPeriod": zod.number().optional(),
+  "isHidden": zod.boolean().optional()
 })
 
 export const UpdateAdminEngineerResponse = zod.object({
   "id": zod.number(),
   "name": zod.string(),
   "isPro": zod.boolean(),
+  "isHidden": zod.boolean(),
   "proExpiresAt": zod.string().nullish(),
   "debtAmount": zod.number(),
   "activeBoost": zod.object({
@@ -1688,6 +1785,60 @@ export const UpdateAdminEngineerResponse = zod.object({
   "expiresAt": zod.string(),
   "createdAt": zod.string()
 }).optional()
+})
+
+
+/**
+ * @summary List all reviews for moderation (admin)
+ */
+export const ListAdminReviewsQueryParams = zod.object({
+  "moderationStatus": zod.coerce.string().optional(),
+  "page": zod.coerce.number().optional()
+})
+
+export const ListAdminReviewsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "authorId": zod.number(),
+  "authorName": zod.string(),
+  "authorEmail": zod.string(),
+  "engineerId": zod.number(),
+  "engineerName": zod.string(),
+  "rating": zod.number(),
+  "comment": zod.string().nullish(),
+  "moderationStatus": zod.string(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+/**
+ * @summary Publish or hide a review (admin)
+ */
+export const ModerateReviewParams = zod.object({
+  "reviewId": zod.coerce.number()
+})
+
+export const ModerateReviewBody = zod.object({
+  "moderationStatus": zod.string()
+})
+
+export const ModerateReviewResponse = zod.object({
+  "id": zod.number(),
+  "orderId": zod.number(),
+  "authorId": zod.number(),
+  "authorName": zod.string(),
+  "authorEmail": zod.string(),
+  "engineerId": zod.number(),
+  "engineerName": zod.string(),
+  "rating": zod.number(),
+  "comment": zod.string().nullish(),
+  "moderationStatus": zod.string(),
+  "createdAt": zod.string()
 })
 
 

@@ -46,9 +46,10 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
   next();
 }
 
-export function requireRole(role: string) {
+export function requireRole(roles: string | string[]) {
+  const allowed = Array.isArray(roles) ? roles : [roles];
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user || req.user.role !== role) {
+    if (!req.user || !allowed.includes(req.user.role)) {
       res.status(403).json({ error: "Forbidden" });
       return;
     }

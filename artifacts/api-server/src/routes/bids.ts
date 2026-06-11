@@ -73,17 +73,14 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
       return;
     }
 
-    // Fetch configurable debt limit
     const debtLimitStr = await getSetting("debt_limit", String(DEFAULT_DEBT_LIMIT));
     const debtLimit = parseInt(debtLimitStr) || DEFAULT_DEBT_LIMIT;
 
-    // Debt enforcement
     if ((eng.debtAmount ?? 0) >= debtLimit) {
       res.status(403).json({ error: "Погасите задолженность перед платформой для продолжения" });
       return;
     }
 
-    // Check not already bid on this order
     const existing = await db.select().from(bidsTable)
       .where(and(eq(bidsTable.orderId, orderId), eq(bidsTable.engineerId, eng.id))).limit(1);
     if (existing.length > 0) {
@@ -101,6 +98,14 @@ router.post("/orders/:orderId/bids", requireAuth, async (req, res) => {
       .set({ bidCount: sql`${ordersTable.bidCount} + 1` })
       .where(eq(ordersTable.id, orderId));
 
+    // Auto-transition: new → collecting_responses on first bid
+    const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
+    if (order && (order.status === "new" || order.status === "open")) {
+      await db.update(ordersTable)
+        .set({ status: "collecting_responses" })
+        .where(eq(ordersTable.id, orderId));
+    }
+
     res.status(201).json(await formatBid(bid));
   } catch (err) {
     req.log.error(err);
@@ -115,7 +120,6 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
     const { status } = req.body;
     if (!status) { res.status(400).json({ error: "Status required" }); return; }
 
-    // Fetch current bid state BEFORE updating to guard idempotency
     const [existingBid] = await db.select().from(bidsTable).where(eq(bidsTable.id, bidId)).limit(1);
     if (!existingBid) { res.status(404).json({ error: "Bid not found" }); return; }
 
@@ -125,16 +129,14 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
       .returning();
     if (!updated) { res.status(404).json({ error: "Bid not found" }); return; }
 
-    // Only run accept side-effects when transitioning INTO accepted (not already accepted)
     const wasAlreadyAccepted = existingBid.status === "accepted";
 
     if (status === "accepted" && !wasAlreadyAccepted) {
-      // Move order to in_progress
+      // Transition: → engineer_selected
       await db.update(ordersTable)
-        .set({ status: "in_progress" })
+        .set({ status: "engineer_selected" })
         .where(eq(ordersTable.id, orderId));
 
-      // Reject all other pending bids on this order
       await db.update(bidsTable)
         .set({ status: "rejected" })
         .where(and(
@@ -143,7 +145,6 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
           ne(bidsTable.id, bidId)
         ));
 
-      // Auto-create chat room linked to this order
       const [order] = await db.select().from(ordersTable).where(eq(ordersTable.id, orderId)).limit(1);
 
       const existingRoom = await db.select().from(chatRoomsTable)
@@ -161,7 +162,6 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
         });
       }
 
-      // Create lead record at configured price — guard against duplicates
       const existingLead = await db.select().from(leadsTable)
         .where(and(eq(leadsTable.orderId, orderId), eq(leadsTable.engineerId, updated.engineerId)))
         .limit(1);
@@ -179,7 +179,6 @@ router.patch("/orders/:orderId/bids/:bidId", requireAuth, async (req, res) => {
           paymentStatus: "unpaid",
         });
 
-        // Update engineer debtAmount
         await db.update(engineersTable)
           .set({ debtAmount: sql`${engineersTable.debtAmount} + ${leadCost}` })
           .where(eq(engineersTable.id, updated.engineerId));

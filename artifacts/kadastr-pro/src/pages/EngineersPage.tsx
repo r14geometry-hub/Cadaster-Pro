@@ -35,6 +35,8 @@ export default function EngineersPage() {
   const [specialization, setSpecialization] = useState(params.get("specialization") ?? "all");
   const [minRating, setMinRating] = useState("");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [sro, setSro] = useState("");
+  const [district, setDistrict] = useState("");
 
   const { data, isLoading } = useListEngineers(
     {
@@ -42,23 +44,27 @@ export default function EngineersPage() {
       region: region !== "all" ? region : undefined,
       specialization: specialization !== "all" ? specialization : undefined,
       minRating: minRating ? parseFloat(minRating) : undefined,
+      verifiedOnly: verifiedOnly ? "true" : undefined,
+      sro: sro || undefined,
+      district: district || undefined,
       limit: 24,
     },
-    { query: { queryKey: getListEngineersQueryKey({ search, region, specialization, minRating: minRating ? parseFloat(minRating) : undefined }) } }
+    { query: { queryKey: getListEngineersQueryKey({ search, region, specialization, minRating: minRating ? parseFloat(minRating) : undefined, verifiedOnly: verifiedOnly ? "true" : undefined, sro: sro || undefined, district: district || undefined }) } }
   );
 
-  const hasFilters = region !== "all" || specialization !== "all" || minRating !== "" || verifiedOnly || search;
+  const hasFilters = region !== "all" || specialization !== "all" || minRating !== "" || verifiedOnly || !!search || !!sro || !!district;
 
   const clearFilters = () => {
+    setDistrict("");
     setRegion("all");
     setSpecialization("all");
     setMinRating("");
     setVerifiedOnly(false);
     setSearch("");
+    setSro("");
   };
 
-  let items = data?.items ?? [];
-  if (verifiedOnly) items = items.filter(e => e.isVerified);
+  const items = data?.items ?? [];
 
   return (
     <div>
@@ -146,6 +152,30 @@ export default function EngineersPage() {
                 </Select>
               </div>
 
+              {/* District filter */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-2">Кадастровый округ</label>
+                <Input
+                  placeholder="Напр. Московский..."
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="text-sm"
+                  data-testid="input-district-filter"
+                />
+              </div>
+
+              {/* SRO filter */}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-2">СРО (название/номер)</label>
+                <Input
+                  placeholder="Напр. СРО А-003..."
+                  value={sro}
+                  onChange={(e) => setSro(e.target.value)}
+                  className="text-sm"
+                  data-testid="input-sro-filter"
+                />
+              </div>
+
               {/* Verified toggle */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-2">Верификация</label>
@@ -173,6 +203,8 @@ export default function EngineersPage() {
                 {region !== "all" && <Badge variant="secondary" className="gap-1">{region} <X className="w-3 h-3 cursor-pointer" onClick={() => setRegion("all")} /></Badge>}
                 {specialization !== "all" && <Badge variant="secondary" className="gap-1">{specialization} <X className="w-3 h-3 cursor-pointer" onClick={() => setSpecialization("all")} /></Badge>}
                 {minRating && <Badge variant="secondary" className="gap-1">Рейтинг от {minRating} <X className="w-3 h-3 cursor-pointer" onClick={() => setMinRating("")} /></Badge>}
+                {district && <Badge variant="secondary" className="gap-1">Округ: {district} <X className="w-3 h-3 cursor-pointer" onClick={() => setDistrict("")} /></Badge>}
+                {sro && <Badge variant="secondary" className="gap-1">СРО: {sro} <X className="w-3 h-3 cursor-pointer" onClick={() => setSro("")} /></Badge>}
                 {verifiedOnly && <Badge variant="secondary" className="gap-1 text-emerald-700 bg-emerald-50 border-emerald-200"><ShieldCheck className="w-3 h-3" />Проверены <X className="w-3 h-3 cursor-pointer" onClick={() => setVerifiedOnly(false)} /></Badge>}
               </div>
             )}

@@ -31,6 +31,9 @@ async function formatEngineer(eng: typeof engineersTable.$inferSelect) {
     responseTime: eng.responseTime ?? "в течение дня",
     priceFrom: eng.priceFrom ?? null,
     isOnline: eng.isOnline ?? false,
+    isHidden: eng.isHidden ?? false,
+    district: eng.district ?? null,
+    sro: eng.sro ?? null,
     isPro: activePro,
     proExpiresAt: eng.proExpiresAt ?? null,
     debtAmount: eng.debtAmount ?? 0,
@@ -59,7 +62,7 @@ router.get("/settings", async (req, res) => {
 
 router.get("/engineers", async (req, res) => {
   try {
-    const { region, specialization, minRating, search, page = "1", limit = "12" } = req.query as Record<string, string>;
+    const { region, specialization, minRating, search, district, sro, verifiedOnly, page = "1", limit = "12" } = req.query as Record<string, string>;
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
     const offset = (pageNum - 1) * limitNum;
@@ -67,6 +70,9 @@ router.get("/engineers", async (req, res) => {
     const conditions = [];
     if (region) conditions.push(eq(engineersTable.region, region));
     if (minRating) conditions.push(gte(engineersTable.rating, parseFloat(minRating)));
+    if (district) conditions.push(eq(engineersTable.district, district));
+    // Filter out hidden engineers from public listing
+    conditions.push(eq(engineersTable.isHidden, false));
 
     let query = db.select().from(engineersTable).$dynamic();
     if (conditions.length > 0) query = query.where(and(...conditions));
@@ -85,17 +91,25 @@ router.get("/engineers", async (req, res) => {
     if (specialization) {
       formatted = formatted.filter(e => e.specializations.includes(specialization));
     }
+    if (sro) {
+      const sroLower = sro.toLowerCase();
+      formatted = formatted.filter(e =>
+        (e.sroName ?? "").toLowerCase().includes(sroLower) ||
+        (e.sro ?? "").toLowerCase().includes(sroLower)
+      );
+    }
+    if (verifiedOnly === "true") {
+      formatted = formatted.filter(e => e.isVerified);
+    }
 
     const now = new Date();
 
-    // Fetch active boosts for all engineers
     const activeBoosts = await db.select().from(profileBoostsTable)
       .where(gte(profileBoostsTable.expiresAt, now));
     const boostedEngIds = new Set(activeBoosts.map(b => b.engineerId));
 
     const DEBT_LIMIT = 3000;
 
-    // Sort: PRO first, then boosted, then by rating; debt-restricted last
     formatted.sort((a, b) => {
       const aDebtBlock = a.debtAmount >= DEBT_LIMIT;
       const bDebtBlock = b.debtAmount >= DEBT_LIMIT;
@@ -121,6 +135,7 @@ router.get("/engineers", async (req, res) => {
 router.get("/engineers/top", async (req, res) => {
   try {
     const all = await db.select().from(engineersTable)
+      .where(eq(engineersTable.isHidden, false))
       .orderBy(sql`${engineersTable.rating} desc, ${engineersTable.reviewCount} desc`)
       .limit(6);
     res.json(await Promise.all(all.map(formatEngineer)));
@@ -288,6 +303,7 @@ router.post("/engineers/verify", requireAuth, async (req, res) => {
       isVerified: true,
       rosreestrStatus: record.status,
       sroName: record.sroName,
+      sro: record.sroName,
       rosreestrCheckedAt: new Date(),
       rosreestrWorksCount: record.worksCount,
       rosreestrRejectionsCount: record.rejectionsCount,
@@ -321,20 +337,22 @@ router.get("/engineers/:engineerId", optionalAuth, async (req, res) => {
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.id, id)).limit(1);
     if (!eng) { res.status(404).json({ error: "Engineer not found" }); return; }
 
+    // Hidden engineers are suppressed from public access; admins and the engineer themselves can still view
+    const isAdmin = req.user?.role === "admin" || req.user?.role === "superadmin";
+    const isOwner = req.user?.userId === eng.userId;
+    if (eng.isHidden && !isAdmin && !isOwner) {
+      res.status(404).json({ error: "Engineer not found" }); return;
+    }
+
     const formatted = await formatEngineer(eng);
 
-    // Determine if contacts should be visible:
-    // - The engineer themselves can always see their own contact info
-    // - Any user who has an accepted bid (as customer) on an order linked to this engineer
     let contactsUnlocked = false;
     const requestingUserId = req.user?.userId;
 
     if (requestingUserId) {
-      // Is the requester the engineer themselves?
       if (eng.userId === requestingUserId) {
         contactsUnlocked = true;
       } else {
-        // Check if there's an accepted bid linking the requesting user (as customer) to this engineer
         const acceptedBids = await db
           .select({ bidId: bidsTable.id })
           .from(bidsTable)
@@ -352,7 +370,6 @@ router.get("/engineers/:engineerId", optionalAuth, async (req, res) => {
     }
 
     if (!contactsUnlocked) {
-      // Strip all contact channels when no accepted bid
       const { phone: _ph, email: _em, telegram: _tg, whatsapp: _wa, ...userWithoutContacts } = formatted.user as {
         phone?: string | null; email?: string | null; telegram?: string | null; whatsapp?: string | null; [key: string]: unknown
       };
