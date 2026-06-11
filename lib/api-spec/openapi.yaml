@@ -1501,6 +1501,10 @@ components:
           type: array
           items:
             type: string
+        district:
+          type: string
+        sro:
+          type: string
         experience:
           type: integer
         bio:

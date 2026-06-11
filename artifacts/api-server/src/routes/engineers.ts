@@ -232,13 +232,15 @@ router.get("/engineers/me", requireAuth, async (req, res) => {
 
 router.put("/engineers/me", requireAuth, async (req, res) => {
   try {
-    const { specializations, region, regions, experience, bio, phone, responseTime, priceFrom, isOnline, portfolioItems } = req.body;
+    const { specializations, region, regions, district, sro, experience, bio, phone, responseTime, priceFrom, isOnline, portfolioItems } = req.body;
     const [eng] = await db.select().from(engineersTable).where(eq(engineersTable.userId, req.user!.userId)).limit(1);
     if (!eng) { res.status(404).json({ error: "Engineer profile not found" }); return; }
     const updates: Record<string, unknown> = {};
     if (specializations !== undefined) updates.specializations = JSON.stringify(specializations);
     if (region !== undefined) updates.region = region;
     if (regions !== undefined) updates.regions = JSON.stringify(regions);
+    if (district !== undefined) updates.district = district || null;
+    if (sro !== undefined) updates.sro = sro || null;
     if (experience !== undefined) updates.experience = experience;
     if (bio !== undefined) updates.bio = bio;
     if (responseTime !== undefined) updates.responseTime = responseTime;

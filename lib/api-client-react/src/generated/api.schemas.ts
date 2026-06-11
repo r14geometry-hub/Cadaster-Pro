@@ -135,6 +135,8 @@ export interface EngineerUpdate {
   specializations?: string[];
   region?: string;
   regions?: string[];
+  district?: string;
+  sro?: string;
   experience?: number;
   bio?: string;
   phone?: string;

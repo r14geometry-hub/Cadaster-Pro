@@ -333,6 +333,8 @@ export const UpdateMyEngineerProfileBody = zod.object({
   "specializations": zod.array(zod.string()).optional(),
   "region": zod.string().optional(),
   "regions": zod.array(zod.string()).optional(),
+  "district": zod.string().optional(),
+  "sro": zod.string().optional(),
   "experience": zod.number().optional(),
   "bio": zod.string().optional(),
   "phone": zod.string().optional(),

@@ -126,9 +126,9 @@ export default function EngineerCard({ engineer }: EngineerCardProps) {
               <span>{engineer.responseTime}</span>
             </div>
           </div>
-          {engineer.sroName && (
-            <div className="mt-2 text-xs text-muted-foreground truncate" title={engineer.sroName as string}>
-              СРО: {engineer.sroName as string}
+          {(engineer.sroName || (engineer as unknown as { sro?: string | null }).sro) && (
+            <div className="mt-2 text-xs text-muted-foreground truncate" title={(engineer.sroName || (engineer as unknown as { sro?: string | null }).sro) as string}>
+              СРО: {(engineer.sroName || (engineer as unknown as { sro?: string | null }).sro) as string}
             </div>
           )}
         </div>

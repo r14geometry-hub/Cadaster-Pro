@@ -127,7 +127,7 @@ export default function EngineerCardPage() {
   const specs = engineer.specializations as string[];
   const regions = (engineer as unknown as { regions?: string[] }).regions ?? [engineer.region];
   const portfolio = (engineer as unknown as { portfolioItems?: PortfolioItem[] }).portfolioItems ?? [];
-  const sroName = engineer.sroName as string | null | undefined;
+  const sroName = (engineer.sroName || (engineer as unknown as { sro?: string | null }).sro) as string | null | undefined;
   const rosreestrWorksCount = engineer.rosreestrWorksCount as number | null | undefined;
   const rosreestrRejectionsCount = engineer.rosreestrRejectionsCount as number | null | undefined;
   const rosreestrRejectionRate = engineer.rosreestrRejectionRate as number | null | undefined;

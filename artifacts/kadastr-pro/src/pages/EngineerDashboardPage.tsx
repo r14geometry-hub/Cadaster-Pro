@@ -53,6 +53,8 @@ const profileSchema = z.object({
   phone: z.string().optional(),
   telegram: z.string().optional(),
   whatsapp: z.string().optional(),
+  district: z.string().optional(),
+  sro: z.string().optional(),
 });
 
 const BID_STATUS: Record<string, { label: string; className: string }> = {
@@ -139,6 +141,8 @@ export default function EngineerDashboardPage() {
       phone: profile?.user?.phone ?? "",
       telegram: (profile?.user as unknown as { telegram?: string | null })?.telegram ?? "",
       whatsapp: (profile?.user as unknown as { whatsapp?: string | null })?.whatsapp ?? "",
+      district: (profile as unknown as { district?: string | null })?.district ?? "",
+      sro: (profile as unknown as { sro?: string | null })?.sro ?? "",
     },
   });
 
@@ -620,6 +624,8 @@ export default function EngineerDashboardPage() {
                         phone: v.phone || undefined,
                         telegram: v.telegram || undefined,
                         whatsapp: v.whatsapp || undefined,
+                        district: v.district || undefined,
+                        sro: v.sro || undefined,
                       } as Parameters<typeof updateProfile.mutate>[0]["data"],
                     }))}
                     className="space-y-4"
@@ -632,6 +638,14 @@ export default function EngineerDashboardPage() {
                           {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
                         </SelectContent>
                       </Select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">Федеральный округ</label>
+                      <Input {...profileForm.register("district")} placeholder="Например: Центральный" data-testid="input-district" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">СРО (саморегулируемая организация)</label>
+                      <Input {...profileForm.register("sro")} placeholder="Например: СРО А «Кадастровые инженеры»" data-testid="input-sro" />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1 block">Опыт работы (лет)</label>
