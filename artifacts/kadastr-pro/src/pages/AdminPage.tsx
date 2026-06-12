@@ -1182,7 +1182,7 @@ function GeographyTab() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const districts = regions
-    ? Array.from(new Set(regions.map((r) => r.federalDistrict))).sort()
+    ? Array.from(new Set(regions.map((r) => r.federalDistrict)))
     : [];
 
   const filtered = (regions ?? []).filter((r) => {

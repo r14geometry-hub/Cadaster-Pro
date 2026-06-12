@@ -59,7 +59,7 @@ router.get("/regions", async (req, res) => {
       name: regionsTable.name,
       federalDistrict: regionsTable.federalDistrict,
       status: regionsTable.status,
-    }).from(regionsTable).orderBy(regionsTable.federalDistrict, regionsTable.name);
+    }).from(regionsTable).orderBy(regionsTable.id);
     res.json(rows);
   } catch (err) {
     req.log.error(err);

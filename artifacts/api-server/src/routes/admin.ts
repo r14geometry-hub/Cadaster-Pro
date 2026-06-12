@@ -747,7 +747,7 @@ router.post("/admin/engineers/:id/reverify", requireAuth, requireRole(ADMIN_ROLE
 
 router.get("/admin/regions", requireAuth, requireRole("superadmin"), async (req, res) => {
   try {
-    const regions = await db.select().from(regionsTable).orderBy(regionsTable.federalDistrict, regionsTable.name);
+    const regions = await db.select().from(regionsTable).orderBy(regionsTable.id);
 
     const enriched = await Promise.all(regions.map(async (r) => {
       const [{ engineerCount }] = await db

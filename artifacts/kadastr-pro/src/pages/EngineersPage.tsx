@@ -7,14 +7,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import EngineerCard from "@/components/EngineerCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import { useListEngineers, getListEngineersQueryKey } from "@workspace/api-client-react";
+import { useListEngineers, getListEngineersQueryKey, useListRegions } from "@workspace/api-client-react";
 import { Search, Users, Filter, X, ShieldCheck } from "lucide-react";
-
-const REGIONS = [
-  "Москва", "Санкт-Петербург", "Московская область", "Краснодарский край",
-  "Татарстан", "Свердловская область", "Новосибирская область", "Нижегородская область",
-  "Самарская область", "Ростовская область", "Другой"
-];
 const SPECIALIZATIONS = [
   "Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт",
   "Снятие с учёта", "Оценка", "Обследование", "Перераспределение"
@@ -38,6 +32,9 @@ export default function EngineersPage() {
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sro, setSro] = useState("");
   const [district, setDistrict] = useState("");
+
+  const { data: regionsData } = useListRegions();
+  const rfRegions = regionsData ?? [];
 
   const { data, isLoading } = useListEngineers(
     {
@@ -121,7 +118,7 @@ export default function EngineersPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Все регионы</SelectItem>
-                    {REGIONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    {rfRegions.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

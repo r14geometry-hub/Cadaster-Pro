@@ -168,10 +168,9 @@ export default function CreateOrderPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="max-h-72">
-                          {activeRegions.length > 0
-                            ? activeRegions.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)
-                            : ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Другой"].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)
-                          }
+                          {(activeRegions.length > 0 ? activeRegions : (regions ?? [])).map(r => (
+                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />

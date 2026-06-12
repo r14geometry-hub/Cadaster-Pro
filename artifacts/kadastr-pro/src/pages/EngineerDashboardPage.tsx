@@ -40,7 +40,6 @@ import {
 } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
 
-const REGIONS = ["Москва", "Санкт-Петербург", "Московская область", "Краснодарский край", "Татарстан", "Свердловская область", "Новосибирская область", "Другой"];
 const SPECIALIZATIONS = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка"];
 
 const DEFAULT_DEBT_LIMIT = 3000;
