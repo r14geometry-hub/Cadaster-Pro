@@ -337,7 +337,7 @@ router.get("/address/suggest", async (req, res) => {
   if (IS_PRODUCTION && !DADATA_API_KEY) {
     res.status(503).json({
       error: "ADDRESS_SERVICE_NOT_CONFIGURED",
-      message: "Для работы адресного поиска необходимо задать переменную окружения DADATA_API_KEY в настройках проекта. Без неё подсказки недоступны в production-среде.",
+      message: "Адресный поиск временно недоступен. Введите название вручную.",
     });
     return;
   }

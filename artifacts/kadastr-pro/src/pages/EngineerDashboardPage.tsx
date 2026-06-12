@@ -763,7 +763,7 @@ export default function EngineerDashboardPage() {
                             onChange={(v) => setNewAreaDistrict(v)}
                             level="district"
                             region={newAreaRegion}
-                            placeholder="Район / улус (необяз.)"
+                            placeholder="Район (необяз.)"
                             freeText={false}
                             data-testid="input-new-area-district"
                           />

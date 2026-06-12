@@ -191,7 +191,7 @@ export default function CreateOrderPage() {
                     name="district"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Район / улус (необязательно)</FormLabel>
+                        <FormLabel>Район (необязательно)</FormLabel>
                         <FormControl>
                           <AddressAutocomplete
                             value={field.value ?? ""}
