@@ -51,7 +51,8 @@
 
 ## Test accounts (seeded)
 
-- Admin: `admin@kadastr.pro` / `admin123`
+- Superadmin: `superadmin@kadastr.pro` / `superadmin123` — видит всех, может редактировать Географию и Реквизиты
+- Admin: `admin@kadastr.pro` / `admin123` — не видит superadmin, не видит вкладку Реквизиты, видит Географию (только просмотр)
 - Customer: `maria@example.com` / `password123`
 - Engineer: `dmitry@kadastr.pro` / `engineer123`
 

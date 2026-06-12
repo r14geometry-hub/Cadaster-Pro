@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, usersTable, engineersTable, ordersTable, leadsTable, bidsTable, leadPricesTable, profileBoostsTable, platformSettingsTable, verificationLogsTable, complaintsTable, chatRoomsTable, chatAttachmentsTable, messagesTable, reviewsTable, notificationsTable, regionsTable } from "@workspace/db";
-import { eq, and, sql, gte, desc, or, isNull, lt } from "drizzle-orm";
+import { eq, and, ne, sql, gte, desc, or, isNull, lt } from "drizzle-orm";
 import { requireAuth, requireRole } from "../middlewares/auth";
 import { rosreestrProvider, computeRatingFromRosreestr } from "../services/rosreestr";
 import { calculateWeightedRating } from "./reviews";
@@ -63,10 +63,23 @@ router.get("/admin/users", requireAuth, requireRole(ADMIN_ROLES), async (req, re
     const pageNum = parseInt(page);
     const limit = 20;
     const offset = (pageNum - 1) * limit;
+    const callerIsSuperAdmin = req.user!.role === "superadmin";
+
+    const conditions = [];
+    if (!callerIsSuperAdmin) conditions.push(ne(usersTable.role, "superadmin"));
+    if (role) conditions.push(eq(usersTable.role, role));
+    const where = conditions.length === 0 ? undefined
+      : conditions.length === 1 ? conditions[0]
+      : and(...conditions);
+
     let query = db.select().from(usersTable).$dynamic();
-    if (role) query = query.where(eq(usersTable.role, role));
+    let countQuery = db.select({ total: sql<number>`count(*)` }).from(usersTable).$dynamic();
+    if (where) {
+      query = query.where(where);
+      countQuery = countQuery.where(where);
+    }
     const all = await query.orderBy(sql`${usersTable.createdAt} desc`).limit(limit).offset(offset);
-    const [{ total }] = await db.select({ total: sql<number>`count(*)` }).from(usersTable);
+    const [{ total }] = await countQuery;
     const items = all.map(({ passwordHash: _, ...u }) => ({ ...u, phone: u.phone ?? null, avatarUrl: u.avatarUrl ?? null }));
     res.json({ items, total: Number(total), page: pageNum, limit });
   } catch (err) {
@@ -79,6 +92,23 @@ router.patch("/admin/users/:userId", requireAuth, requireRole(ADMIN_ROLES), asyn
   try {
     const userId = parseInt(req.params.userId as string);
     const { isBlocked } = req.body;
+
+    const [targetUser] = await db
+      .select({ id: usersTable.id, role: usersTable.role })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId));
+    if (!targetUser) { res.status(404).json({ error: "User not found" }); return; }
+
+    // Admin cannot modify superadmin
+    if (req.user!.role === "admin" && targetUser.role === "superadmin") {
+      res.status(403).json({ error: "Forbidden" }); return;
+    }
+
+    // Self-block protection
+    if (req.user!.userId === userId && isBlocked === true) {
+      res.status(400).json({ error: "Нельзя заблокировать самого себя" }); return;
+    }
+
     const updates: Record<string, unknown> = {};
     if (isBlocked !== undefined) updates.isBlocked = isBlocked ? "true" : "false";
     const [updated] = await db.update(usersTable).set(updates).where(eq(usersTable.id, userId)).returning();
@@ -745,7 +775,7 @@ router.post("/admin/engineers/:id/reverify", requireAuth, requireRole(ADMIN_ROLE
 
 // ── Geography / Regions ───────────────────────────────────────────────────────
 
-router.get("/admin/regions", requireAuth, requireRole("superadmin"), async (req, res) => {
+router.get("/admin/regions", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
   try {
     const regions = await db.select().from(regionsTable).orderBy(regionsTable.id);
 

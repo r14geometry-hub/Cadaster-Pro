@@ -332,7 +332,7 @@ export default function AdminPage() {
               </span>
             )}
           </TabsTrigger>
-          {isSuperAdmin && (
+          {isAdmin && (
             <TabsTrigger value="geography" data-testid="tab-admin-geography">
               <MapPin className="w-3.5 h-3.5 mr-1" />
               География
@@ -365,7 +365,7 @@ export default function AdminPage() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users?.items.map((u) => (
+                      {users?.items.filter((u) => isSuperAdmin || u.role !== "superadmin").map((u) => (
                         <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
                           <TableCell className="font-medium">{u.name}</TableCell>
                           <TableCell className="text-muted-foreground">{u.email}</TableCell>
@@ -397,7 +397,7 @@ export default function AdminPage() {
                             {new Date(u.createdAt).toLocaleDateString("ru-RU")}
                           </TableCell>
                           <TableCell>
-                            {u.id !== user!.id && (
+                            {u.id !== user!.id && (isSuperAdmin || u.role !== "superadmin") && (
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1126,9 +1126,9 @@ export default function AdminPage() {
         </TabsContent>
 
         {/* ── Geography ─────────────────────────────────────────────────────── */}
-        {isSuperAdmin && (
+        {isAdmin && (
           <TabsContent value="geography">
-            <GeographyTab />
+            <GeographyTab readOnly={!isSuperAdmin} />
           </TabsContent>
         )}
 
@@ -1165,7 +1165,7 @@ const MONETIZATION_LABELS: Record<string, string> = {
   disabled: "Отключена",
 };
 
-function GeographyTab() {
+function GeographyTab({ readOnly = false }: { readOnly?: boolean }) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { data: regions, isLoading } = useListAdminRegions();
@@ -1299,7 +1299,7 @@ function GeographyTab() {
                     <TableHead className="text-xs text-right">В работе</TableHead>
                     <TableHead className="text-xs text-right">Выручка ₽</TableHead>
                     <TableHead className="text-xs">Комментарий</TableHead>
-                    <TableHead className="text-xs">Действие</TableHead>
+                    {!readOnly && <TableHead className="text-xs">Действие</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1392,28 +1392,30 @@ function GeographyTab() {
                           <span className="text-muted-foreground truncate block">{r.comment ?? "—"}</span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {editingId === r.id ? (
-                          <div className="flex gap-1">
-                            <Button size="sm" className="h-7 text-xs" onClick={() => saveEdit(r.id)} data-testid={`button-region-save-${r.id}`}>
-                              Сохранить
+                      {!readOnly && (
+                        <TableCell>
+                          {editingId === r.id ? (
+                            <div className="flex gap-1">
+                              <Button size="sm" className="h-7 text-xs" onClick={() => saveEdit(r.id)} data-testid={`button-region-save-${r.id}`}>
+                                Сохранить
+                              </Button>
+                              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit}>
+                                Отмена
+                              </Button>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => startEdit(r)}
+                              data-testid={`button-region-edit-${r.id}`}
+                            >
+                              Изменить
                             </Button>
-                            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelEdit}>
-                              Отмена
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            onClick={() => startEdit(r)}
-                            data-testid={`button-region-edit-${r.id}`}
-                          >
-                            Изменить
-                          </Button>
-                        )}
-                      </TableCell>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

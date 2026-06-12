@@ -7,6 +7,15 @@ async function seed() {
 
   const hash = (pw: string) => bcrypt.hash(pw, 10);
 
+  // Create superadmin
+  await db.insert(usersTable).values({
+    name: "Суперадмин",
+    email: "superadmin@kadastr.pro",
+    passwordHash: await hash("superadmin123"),
+    role: "superadmin",
+    phone: "+7 (495) 999-00-00",
+  }).onConflictDoNothing().returning();
+
   // Create admin
   const [admin] = await db.insert(usersTable).values({
     name: "Администратор",
