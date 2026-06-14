@@ -85,6 +85,8 @@ export default function EngineerDashboardPage() {
   const [newAreaRegion, setNewAreaRegion] = useState("");
   const [newAreaDistrict, setNewAreaDistrict] = useState("");
   const [newAreaLocality, setNewAreaLocality] = useState("");
+  const [districtAreaError, setDistrictAreaError] = useState(false);
+  const [localityAreaError, setLocalityAreaError] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useGetMyEngineerProfile({
     query: { enabled: !!user, queryKey: getGetMyEngineerProfileQueryKey() },
@@ -748,7 +750,12 @@ export default function EngineerDashboardPage() {
                     <div className="space-y-2">
                       <RegionCombobox
                         value={newAreaRegion}
-                        onChange={setNewAreaRegion}
+                        onChange={(v) => {
+                          setNewAreaRegion(v);
+                          // Cascade: region change clears district and locality
+                          setNewAreaDistrict("");
+                          setNewAreaLocality("");
+                        }}
                         regions={(rfRegions ?? []).filter(r => r.status === "active")}
                         placeholder="Субъект РФ *"
                         data-testid="select-new-area-region"
@@ -757,7 +764,12 @@ export default function EngineerDashboardPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <AddressAutocomplete
                             value={newAreaDistrict}
-                            onChange={(v) => setNewAreaDistrict(v)}
+                            onChange={(v) => {
+                              setNewAreaDistrict(v);
+                              // Cascade: district change clears locality
+                              setNewAreaLocality("");
+                            }}
+                            onValidationChange={(hasError) => setDistrictAreaError(hasError)}
                             level="district"
                             region={newAreaRegion}
                             placeholder="Район (необяз.)"
@@ -767,8 +779,10 @@ export default function EngineerDashboardPage() {
                           <AddressAutocomplete
                             value={newAreaLocality}
                             onChange={(v) => setNewAreaLocality(v)}
+                            onValidationChange={(hasError) => setLocalityAreaError(hasError)}
                             level="locality"
                             region={newAreaRegion}
+                            district={newAreaDistrict}
                             placeholder="Нас. пункт (необяз.)"
                             freeText={false}
                             data-testid="input-new-area-locality"
@@ -781,7 +795,7 @@ export default function EngineerDashboardPage() {
                         variant="outline"
                         className="gap-1.5 h-8"
                         onClick={addServiceArea}
-                        disabled={!newAreaRegion}
+                        disabled={!newAreaRegion || districtAreaError || localityAreaError}
                         data-testid="button-add-service-area"
                       >
                         <Plus className="w-3.5 h-3.5" /> Добавить территорию

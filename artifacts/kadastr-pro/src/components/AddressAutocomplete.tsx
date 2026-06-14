@@ -29,7 +29,14 @@ interface AddressAutocompleteProps {
   freeText?: boolean;
   className?: string;
   "data-testid"?: string;
+  onValidationChange?: (hasError: boolean) => void;
 }
+
+const NOT_FOUND_MESSAGES: Partial<Record<AddressLevel, string>> = {
+  district: "Район не найден. Проверьте название или выберите другой регион.",
+  locality: "Населённый пункт не найден. Проверьте название или выберите район/регион.",
+  territory: "Населённый пункт не найден. Проверьте название или выберите район/регион.",
+};
 
 export default function AddressAutocomplete({
   value,
@@ -43,6 +50,7 @@ export default function AddressAutocomplete({
   freeText = false,
   className,
   "data-testid": testId,
+  onValidationChange,
 }: AddressAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value);
   const [suggestions, setSuggestions] = useState<AddressSuggestion[]>([]);
@@ -50,22 +58,28 @@ export default function AddressAutocomplete({
   const [isLoading, setIsLoading] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [activeSuggestion, setActiveSuggestion] = useState(-1);
+  const [noResults, setNoResults] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Sync inputValue and reset validation state when the confirmed value changes externally
   useEffect(() => {
     setInputValue(value);
+    setNoResults(false);
+    setSuggestions([]);
+    setIsOpen(false);
   }, [value]);
 
-  // Reset suggestions when context changes
+  // Reset suggestions when context (region/district) changes
   useEffect(() => {
     setSuggestions([]);
     setIsOpen(false);
+    setNoResults(false);
   }, [region, district]);
 
   const fetchSuggestions = useCallback(async (q: string) => {
-    if (q.length < 2) { setSuggestions([]); setIsOpen(false); return; }
+    if (q.length < 2) { setSuggestions([]); setIsOpen(false); setNoResults(false); return; }
     setIsLoading(true);
     setServiceError(null);
     try {
@@ -81,6 +95,7 @@ export default function AddressAutocomplete({
         setServiceError(err.message ?? "Адресный сервис недоступен");
         setSuggestions([]);
         setIsOpen(false);
+        setNoResults(false);
         return;
       }
 
@@ -88,9 +103,11 @@ export default function AddressAutocomplete({
         const data: AddressSuggestion[] = await resp.json();
         setSuggestions(data);
         setIsOpen(data.length > 0);
+        setNoResults(data.length === 0 && q.trim().length >= 2);
       }
     } catch {
       setSuggestions([]);
+      setNoResults(false);
     } finally {
       setIsLoading(false);
     }
@@ -100,17 +117,30 @@ export default function AddressAutocomplete({
     const v = e.target.value;
     setInputValue(v);
     setActiveSuggestion(-1);
+    setNoResults(false);
 
-    if (freeText) onChange(v);
+    if (freeText) {
+      onChange(v);
+    } else {
+      // For strict (non-freeText) fields: when the input diverges from the confirmed
+      // value, clear the form field so the submission cannot contain stale data.
+      if (v !== value) onChange("");
+    }
 
     if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => fetchSuggestions(v), 300);
+    if (v.trim().length >= 2) {
+      timerRef.current = setTimeout(() => fetchSuggestions(v), 300);
+    } else {
+      setSuggestions([]);
+      setIsOpen(false);
+    }
   }
 
   function handleSelect(s: AddressSuggestion) {
     setInputValue(s.value);
     setSuggestions([]);
     setIsOpen(false);
+    setNoResults(false);
     onChange(s.value, s);
   }
 
@@ -144,6 +174,23 @@ export default function AddressAutocomplete({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Unconfirmed input: user typed something that diverges from the confirmed form value
+  const hasUnconfirmedInput = !freeText && inputValue !== value && inputValue.trim().length > 0;
+  // Invalid = unconfirmed AND loading has finished (we know whether suggestions exist)
+  const isInvalid = hasUnconfirmedInput && !isLoading;
+
+  // Notify parent about validation state
+  useEffect(() => {
+    onValidationChange?.(isInvalid);
+  }, [isInvalid, onValidationChange]);
+
+  // Show the error message only when the dropdown is closed (not while typing with open dropdown)
+  const validationError = isInvalid && !isOpen
+    ? (noResults
+        ? (NOT_FOUND_MESSAGES[level] ?? "Значение не найдено в справочнике.")
+        : "Выберите значение из списка")
+    : null;
+
   const sublabel = (s: AddressSuggestion): string | null => {
     const parts: string[] = [];
     if (s.type) parts.push(s.type);
@@ -172,6 +219,7 @@ export default function AddressAutocomplete({
           disabled={disabled}
           autoComplete="off"
           data-testid={testId}
+          className={cn(validationError && "border-destructive focus-visible:ring-destructive/30")}
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-muted-foreground" />
@@ -182,6 +230,13 @@ export default function AddressAutocomplete({
         <div className="mt-1 flex items-start gap-1.5 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
           <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           <span>{serviceError}</span>
+        </div>
+      )}
+
+      {validationError && (
+        <div className="mt-1 flex items-start gap-1.5 text-xs text-destructive" data-testid={testId ? `${testId}-error` : undefined}>
+          <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          <span>{validationError}</span>
         </div>
       )}
 

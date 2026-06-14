@@ -4,6 +4,7 @@ import { eq, and, sql } from "drizzle-orm";
 import { requireAuth, optionalAuth } from "../middlewares/auth";
 import { calculateWeightedRating } from "./reviews";
 import { orderMatchesTerritories, type ServiceArea } from "../lib/territory-match";
+import { isValidDistrict, isValidLocality } from "../lib/address-lookup";
 
 const router = Router();
 
@@ -107,6 +108,19 @@ router.post("/orders", requireAuth, async (req, res) => {
       };
       res.status(403).json({ error: messages[regionRow.status] ?? "Регион недоступен." });
       return;
+    }
+
+    // Geography validation — only when using the built-in address DB (no DaData key).
+    // DaData returns values that may not match the built-in reference, so skip in that case.
+    if (!process.env.DADATA_API_KEY) {
+      if (district && !isValidDistrict(region, district)) {
+        res.status(400).json({ error: "Некорректный район для выбранного региона. Выберите район из списка." });
+        return;
+      }
+      if (locality && !isValidLocality(region, district, locality)) {
+        res.status(400).json({ error: "Некорректный населённый пункт. Выберите значение из списка." });
+        return;
+      }
     }
 
     const [order] = await db.insert(ordersTable).values({

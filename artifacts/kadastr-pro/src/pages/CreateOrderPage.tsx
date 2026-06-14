@@ -40,6 +40,9 @@ export default function CreateOrderPage() {
   const queryClient = useQueryClient();
   const [submitType, setSubmitType] = useState<"publish" | "draft">("publish");
 
+  const [districtHasError, setDistrictHasError] = useState(false);
+  const [localityHasError, setLocalityHasError] = useState(false);
+
   const { data: regions } = useListRegions();
   const activeRegions = (regions ?? []).filter(r => r.status === "active");
 
@@ -77,6 +80,7 @@ export default function CreateOrderPage() {
   }
 
   const onSubmit = (values: FormValues) => {
+    if (districtHasError || localityHasError) return;
     createOrder.mutate({
       data: {
         title: values.title,
@@ -92,6 +96,8 @@ export default function CreateOrderPage() {
       },
     });
   };
+
+  const hasAddressError = districtHasError || localityHasError;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
@@ -165,7 +171,13 @@ export default function CreateOrderPage() {
                       <FormControl>
                         <RegionCombobox
                           value={field.value}
-                          onChange={field.onChange}
+                          onChange={(v) => {
+                            field.onChange(v);
+                            // Cascade: region change clears district, locality and address
+                            form.setValue("district", "");
+                            form.setValue("locality", "");
+                            form.setValue("address", "");
+                          }}
                           regions={activeRegions.length > 0 ? activeRegions : (regions ?? [])}
                           placeholder="Выберите регион"
                           data-testid="select-region"
@@ -193,7 +205,13 @@ export default function CreateOrderPage() {
                         <FormControl>
                           <AddressAutocomplete
                             value={field.value ?? ""}
-                            onChange={(v) => field.onChange(v)}
+                            onChange={(v, suggestion) => {
+                              field.onChange(v);
+                              // Cascade: district change clears locality and address
+                              form.setValue("locality", "");
+                              form.setValue("address", "");
+                            }}
+                            onValidationChange={(hasError) => setDistrictHasError(hasError)}
                             level="district"
                             region={form.watch("region")}
                             placeholder="Начните вводить район..."
@@ -215,8 +233,10 @@ export default function CreateOrderPage() {
                           <AddressAutocomplete
                             value={field.value ?? ""}
                             onChange={(v) => field.onChange(v)}
+                            onValidationChange={(hasError) => setLocalityHasError(hasError)}
                             level="locality"
                             region={form.watch("region")}
+                            district={form.watch("district")}
                             placeholder="Начните вводить название..."
                             freeText={false}
                             data-testid="input-locality"
@@ -282,7 +302,7 @@ export default function CreateOrderPage() {
                 <Button
                   type="submit"
                   className="flex-1 gap-1.5"
-                  disabled={createOrder.isPending}
+                  disabled={createOrder.isPending || hasAddressError}
                   onClick={() => setSubmitType("publish")}
                   data-testid="button-submit-order"
                 >
@@ -293,7 +313,7 @@ export default function CreateOrderPage() {
                   type="submit"
                   variant="outline"
                   className="gap-1.5"
-                  disabled={createOrder.isPending}
+                  disabled={createOrder.isPending || hasAddressError}
                   onClick={() => setSubmitType("draft")}
                   data-testid="button-save-draft"
                 >
