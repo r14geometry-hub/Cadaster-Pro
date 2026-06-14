@@ -41,7 +41,6 @@ export default function CreateOrderPage() {
   const [submitType, setSubmitType] = useState<"publish" | "draft">("publish");
 
   const [districtHasError, setDistrictHasError] = useState(false);
-  const [localityHasError, setLocalityHasError] = useState(false);
 
   const { data: regions } = useListRegions();
   const activeRegions = (regions ?? []).filter(r => r.status === "active");
@@ -80,7 +79,7 @@ export default function CreateOrderPage() {
   }
 
   const onSubmit = (values: FormValues) => {
-    if (districtHasError || localityHasError) return;
+    if (districtHasError) return;
     createOrder.mutate({
       data: {
         title: values.title,
@@ -97,7 +96,7 @@ export default function CreateOrderPage() {
     });
   };
 
-  const hasAddressError = districtHasError || localityHasError;
+  const hasAddressError = districtHasError;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
@@ -230,15 +229,9 @@ export default function CreateOrderPage() {
                       <FormItem>
                         <FormLabel>Населённый пункт (необязательно)</FormLabel>
                         <FormControl>
-                          <AddressAutocomplete
-                            value={field.value ?? ""}
-                            onChange={(v) => field.onChange(v)}
-                            onValidationChange={(hasError) => setLocalityHasError(hasError)}
-                            level="locality"
-                            region={form.watch("region")}
-                            district={form.watch("district")}
-                            placeholder="Начните вводить название..."
-                            freeText={false}
+                          <Input
+                            placeholder="Город, деревня, СНТ, ДНТ..."
+                            {...field}
                             data-testid="input-locality"
                           />
                         </FormControl>

@@ -86,7 +86,6 @@ export default function EngineerDashboardPage() {
   const [newAreaDistrict, setNewAreaDistrict] = useState("");
   const [newAreaLocality, setNewAreaLocality] = useState("");
   const [districtAreaError, setDistrictAreaError] = useState(false);
-  const [localityAreaError, setLocalityAreaError] = useState(false);
 
   const { data: profile, isLoading: profileLoading } = useGetMyEngineerProfile({
     query: { enabled: !!user, queryKey: getGetMyEngineerProfileQueryKey() },
@@ -776,15 +775,10 @@ export default function EngineerDashboardPage() {
                             freeText={false}
                             data-testid="input-new-area-district"
                           />
-                          <AddressAutocomplete
+                          <Input
                             value={newAreaLocality}
-                            onChange={(v) => setNewAreaLocality(v)}
-                            onValidationChange={(hasError) => setLocalityAreaError(hasError)}
-                            level="locality"
-                            region={newAreaRegion}
-                            district={newAreaDistrict}
+                            onChange={(e) => setNewAreaLocality(e.target.value)}
                             placeholder="Нас. пункт (необяз.)"
-                            freeText={false}
                             data-testid="input-new-area-locality"
                           />
                         </div>
@@ -795,7 +789,7 @@ export default function EngineerDashboardPage() {
                         variant="outline"
                         className="gap-1.5 h-8"
                         onClick={addServiceArea}
-                        disabled={!newAreaRegion || districtAreaError || localityAreaError}
+                        disabled={!newAreaRegion || districtAreaError}
                         data-testid="button-add-service-area"
                       >
                         <Plus className="w-3.5 h-3.5" /> Добавить территорию

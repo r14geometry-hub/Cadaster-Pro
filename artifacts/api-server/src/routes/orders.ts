@@ -110,15 +110,12 @@ router.post("/orders", requireAuth, async (req, res) => {
       return;
     }
 
-    // Geography validation — only when using the built-in address DB (no DaData key).
+    // District validation — only when using the built-in address DB (no DaData key).
     // DaData returns values that may not match the built-in reference, so skip in that case.
+    // Locality is free-text (villages, SNT, DNT, hamlets etc.) — never validated against the reference.
     if (!process.env.DADATA_API_KEY) {
       if (district && !isValidDistrict(region, district)) {
         res.status(400).json({ error: "Некорректный район для выбранного региона. Выберите район из списка." });
-        return;
-      }
-      if (locality && !isValidLocality(region, district, locality)) {
-        res.status(400).json({ error: "Некорректный населённый пункт. Выберите значение из списка." });
         return;
       }
     }
