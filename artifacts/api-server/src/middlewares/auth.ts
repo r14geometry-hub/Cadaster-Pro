@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import { db, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 
 const secret = process.env.SESSION_SECRET;
 if (!secret) {
@@ -23,7 +25,7 @@ declare global {
   }
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
+export function requireAuth(req: Request, res: Response, next: NextFunction): void {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
     res.status(401).json({ error: "Unauthorized" });
@@ -33,7 +35,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
     req.user = payload;
-    next();
+    db.select({ isBlocked: usersTable.isBlocked })
+      .from(usersTable)
+      .where(eq(usersTable.id, payload.userId))
+      .then(([user]) => {
+        if (user?.isBlocked === "true") {
+          res.status(403).json({ error: "Вы заблокированы" });
+          return;
+        }
+        next();
+      })
+      .catch(() => next());
   } catch {
     res.status(401).json({ error: "Invalid token" });
   }

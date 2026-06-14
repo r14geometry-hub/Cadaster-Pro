@@ -63,10 +63,13 @@ router.get("/admin/users", requireAuth, requireRole(ADMIN_ROLES), async (req, re
     const pageNum = parseInt(page);
     const limit = 20;
     const offset = (pageNum - 1) * limit;
-    const callerIsSuperAdmin = req.user!.role === "superadmin";
+    const callerRole = req.user!.role;
 
     const conditions = [];
-    if (!callerIsSuperAdmin) conditions.push(ne(usersTable.role, "superadmin"));
+    if (callerRole === "admin") {
+      conditions.push(ne(usersTable.role, "admin"));
+      conditions.push(ne(usersTable.role, "superadmin"));
+    }
     if (role) conditions.push(eq(usersTable.role, role));
     const where = conditions.length === 0 ? undefined
       : conditions.length === 1 ? conditions[0]
@@ -99,9 +102,9 @@ router.patch("/admin/users/:userId", requireAuth, requireRole(ADMIN_ROLES), asyn
       .where(eq(usersTable.id, userId));
     if (!targetUser) { res.status(404).json({ error: "User not found" }); return; }
 
-    // Admin cannot modify superadmin
-    if (req.user!.role === "admin" && targetUser.role === "superadmin") {
-      res.status(403).json({ error: "Forbidden" }); return;
+    // Admin cannot modify admin or superadmin
+    if (req.user!.role === "admin" && (targetUser.role === "admin" || targetUser.role === "superadmin")) {
+      res.status(403).json({ error: "Недостаточно прав" }); return;
     }
 
     // Self-block protection

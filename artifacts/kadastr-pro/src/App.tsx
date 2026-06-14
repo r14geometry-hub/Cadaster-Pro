@@ -2,7 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Layout from "@/components/Layout";
 import HomePage from "@/pages/HomePage";
 import EngineersPage from "@/pages/EngineersPage";
@@ -24,7 +24,40 @@ const queryClient = new QueryClient({
   },
 });
 
+function BlockedScreen() {
+  const { logout } = useAuth();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="text-center space-y-3 max-w-sm px-6">
+        <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-2">
+          <svg className="w-8 h-8 text-destructive" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+        </div>
+        <h1 className="text-xl font-semibold text-foreground">Вы заблокированы</h1>
+        <p className="text-muted-foreground text-sm">Доступ к сервису ограничен.</p>
+        <button
+          onClick={logout}
+          className="mt-4 text-sm text-primary underline underline-offset-4 hover:text-primary/80"
+        >
+          Выйти из аккаунта
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Router() {
+  const { isBlocked } = useAuth();
+
+  if (isBlocked) {
+    return (
+      <Layout>
+        <BlockedScreen />
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <Switch>
