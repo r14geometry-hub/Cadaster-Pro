@@ -117,10 +117,7 @@ router.post("/orders", requireAuth, async (req, res) => {
         res.status(400).json({ error: "Некорректный район для выбранного региона. Выберите район из списка." });
         return;
       }
-      if (locality && district && !isValidLocality(region, district, locality)) {
-        res.status(400).json({ error: "Некорректный населённый пункт для выбранного района. Выберите из списка." });
-        return;
-      }
+      // locality is free-text — not validated against the reference
     }
 
     const [order] = await db.insert(ordersTable).values({

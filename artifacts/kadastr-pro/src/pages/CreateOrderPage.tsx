@@ -42,7 +42,6 @@ export default function CreateOrderPage() {
   // Validation state: true while user has typed but not confirmed from dropdown
   const [regionHasError, setRegionHasError] = useState(false);
   const [districtHasError, setDistrictHasError] = useState(false);
-  const [localityHasError, setLocalityHasError] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -81,7 +80,7 @@ export default function CreateOrderPage() {
   }
 
   const onSubmit = (values: FormValues) => {
-    if (regionHasError || districtHasError || localityHasError) return;
+    if (regionHasError || districtHasError) return;
     createOrder.mutate({
       data: {
         title: values.title,
@@ -98,7 +97,7 @@ export default function CreateOrderPage() {
     });
   };
 
-  const hasAddressError = regionHasError || districtHasError || localityHasError;
+  const hasAddressError = regionHasError || districtHasError;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
@@ -208,7 +207,7 @@ export default function CreateOrderPage() {
                     name="district"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Район (необязательно)</FormLabel>
+                        <FormLabel>Район</FormLabel>
                         <FormControl>
                           <AddressAutocomplete
                             value={field.value ?? ""}
@@ -232,7 +231,7 @@ export default function CreateOrderPage() {
                     )}
                   />
 
-                  {/* Locality — disabled until district chosen, must select from list */}
+                  {/* Locality — free text, optional */}
                   <FormField
                     control={form.control}
                     name="locality"
@@ -240,16 +239,9 @@ export default function CreateOrderPage() {
                       <FormItem>
                         <FormLabel>Населённый пункт (необязательно)</FormLabel>
                         <FormControl>
-                          <AddressAutocomplete
-                            value={field.value ?? ""}
-                            onChange={(v) => field.onChange(v)}
-                            onValidationChange={setLocalityHasError}
-                            level="locality"
-                            region={watchedRegion}
-                            district={watchedDistrict}
-                            placeholder={watchedDistrict ? "Начните вводить название..." : "Сначала выберите район"}
-                            disabled={!watchedDistrict}
-                            freeText={false}
+                          <Input
+                            placeholder="Город, деревня, СНТ, ДНТ..."
+                            {...field}
                             data-testid="input-locality"
                           />
                         </FormControl>
