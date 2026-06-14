@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import EngineerCard from "@/components/EngineerCard";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import RegionCombobox from "@/components/RegionCombobox";
 import { useListEngineers, getListEngineersQueryKey, useListRegions } from "@workspace/api-client-react";
 import { Search, Users, Filter, X, ShieldCheck } from "lucide-react";
 const SPECIALIZATIONS = [
@@ -112,15 +113,16 @@ export default function EngineersPage() {
               {/* Region */}
               <div>
                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide block mb-2">Регион</label>
-                <Select value={region} onValueChange={setRegion}>
-                  <SelectTrigger className="text-sm" data-testid="select-region">
-                    <SelectValue placeholder="Все регионы" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Все регионы</SelectItem>
-                    {rfRegions.map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <RegionCombobox
+                  value={region}
+                  onChange={setRegion}
+                  regions={rfRegions}
+                  allOption
+                  allLabel="Все регионы"
+                  allValue="all"
+                  placeholder="Все регионы"
+                  data-testid="select-region"
+                />
               </div>
 
               {/* Specialization */}

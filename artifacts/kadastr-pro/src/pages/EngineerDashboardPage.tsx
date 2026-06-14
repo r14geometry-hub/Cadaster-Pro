@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import RegionCombobox from "@/components/RegionCombobox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import StarRating from "@/components/StarRating";
 import OrderCard from "@/components/OrderCard";
@@ -746,16 +746,13 @@ export default function EngineerDashboardPage() {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <Select value={newAreaRegion} onValueChange={setNewAreaRegion}>
-                        <SelectTrigger className="h-8 text-sm" data-testid="select-new-area-region">
-                          <SelectValue placeholder="Субъект РФ *" />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72">
-                          {(rfRegions ?? []).filter(r => r.status === "active").map(r => (
-                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <RegionCombobox
+                        value={newAreaRegion}
+                        onChange={setNewAreaRegion}
+                        regions={(rfRegions ?? []).filter(r => r.status === "active")}
+                        placeholder="Субъект РФ *"
+                        data-testid="select-new-area-region"
+                      />
                       {newAreaRegion && (
                         <div className="grid grid-cols-2 gap-2">
                           <AddressAutocomplete
@@ -811,12 +808,13 @@ export default function EngineerDashboardPage() {
                   >
                     <div>
                       <label className="text-sm font-medium mb-1 block">Основной регион (для профиля)</label>
-                      <Select onValueChange={(v) => profileForm.setValue("region", v)} defaultValue={profile.region}>
-                        <SelectTrigger data-testid="select-profile-region"><SelectValue /></SelectTrigger>
-                        <SelectContent className="max-h-72">
-                          {(rfRegions ?? []).map(r => <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                      <RegionCombobox
+                        value={profileForm.watch("region")}
+                        onChange={(v) => profileForm.setValue("region", v)}
+                        regions={rfRegions ?? []}
+                        placeholder="Выберите регион"
+                        data-testid="select-profile-region"
+                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium mb-1 block">Федеральный округ</label>

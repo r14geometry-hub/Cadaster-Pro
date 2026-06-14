@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ClipboardList, FileText, Send, Info } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
+import RegionCombobox from "@/components/RegionCombobox";
 
 const SERVICE_TYPES = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка", "Другое"];
 
@@ -161,18 +162,15 @@ export default function CreateOrderPage() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Субъект РФ</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger data-testid="select-region">
-                            <SelectValue placeholder="Выберите регион" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="max-h-72">
-                          {(activeRegions.length > 0 ? activeRegions : (regions ?? [])).map(r => (
-                            <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <RegionCombobox
+                          value={field.value}
+                          onChange={field.onChange}
+                          regions={activeRegions.length > 0 ? activeRegions : (regions ?? [])}
+                          placeholder="Выберите регион"
+                          data-testid="select-region"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
