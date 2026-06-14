@@ -9,13 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { useCreateOrder, getListOrdersQueryKey, useListRegions } from "@workspace/api-client-react";
+import { useCreateOrder, getListOrdersQueryKey } from "@workspace/api-client-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { ClipboardList, FileText, Send, Info } from "lucide-react";
 import AddressAutocomplete from "@/components/AddressAutocomplete";
-import RegionCombobox from "@/components/RegionCombobox";
 
 const SERVICE_TYPES = ["Межевание", "Техплан", "Кадастровый паспорт", "Постановка на учёт", "Снятие с учёта", "Оценка", "Другое"];
 
@@ -23,7 +22,7 @@ const schema = z.object({
   title: z.string().min(5, "Минимум 5 символов"),
   description: z.string().min(20, "Минимум 20 символов"),
   serviceType: z.string().min(1, "Выберите тип услуги"),
-  region: z.string().min(1, "Выберите регион"),
+  region: z.string().min(1, "Выберите субъект РФ"),
   district: z.string().optional(),
   locality: z.string().optional(),
   address: z.string().optional(),
@@ -40,15 +39,18 @@ export default function CreateOrderPage() {
   const queryClient = useQueryClient();
   const [submitType, setSubmitType] = useState<"publish" | "draft">("publish");
 
+  // Validation state: true while user has typed but not confirmed from dropdown
+  const [regionHasError, setRegionHasError] = useState(false);
   const [districtHasError, setDistrictHasError] = useState(false);
-
-  const { data: regions } = useListRegions();
-  const activeRegions = (regions ?? []).filter(r => r.status === "active");
+  const [localityHasError, setLocalityHasError] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { title: "", description: "", serviceType: "", region: "", district: "", locality: "", address: "", budget: "", deadline: "" },
   });
+
+  const watchedRegion = form.watch("region");
+  const watchedDistrict = form.watch("district");
 
   const createOrder = useCreateOrder({
     mutation: {
@@ -79,7 +81,7 @@ export default function CreateOrderPage() {
   }
 
   const onSubmit = (values: FormValues) => {
-    if (districtHasError) return;
+    if (regionHasError || districtHasError || localityHasError) return;
     createOrder.mutate({
       data: {
         title: values.title,
@@ -96,7 +98,7 @@ export default function CreateOrderPage() {
     });
   };
 
-  const hasAddressError = districtHasError;
+  const hasAddressError = regionHasError || districtHasError || localityHasError;
 
   return (
     <div className="container mx-auto px-4 py-10 max-w-2xl">
@@ -140,6 +142,7 @@ export default function CreateOrderPage() {
                   </FormItem>
                 )}
               />
+
               <div className="grid sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -161,6 +164,8 @@ export default function CreateOrderPage() {
                     </FormItem>
                   )}
                 />
+
+                {/* Region — searchable autocomplete, must select from list */}
                 <FormField
                   control={form.control}
                   name="region"
@@ -168,7 +173,7 @@ export default function CreateOrderPage() {
                     <FormItem>
                       <FormLabel>Субъект РФ</FormLabel>
                       <FormControl>
-                        <RegionCombobox
+                        <AddressAutocomplete
                           value={field.value}
                           onChange={(v) => {
                             field.onChange(v);
@@ -177,9 +182,11 @@ export default function CreateOrderPage() {
                             form.setValue("locality", "");
                             form.setValue("address", "");
                           }}
-                          regions={activeRegions.length > 0 ? activeRegions : (regions ?? [])}
-                          placeholder="Выберите регион"
-                          data-testid="select-region"
+                          onValidationChange={setRegionHasError}
+                          level="region"
+                          placeholder="Начните вводить субъект РФ..."
+                          freeText={false}
+                          data-testid="input-region"
                         />
                       </FormControl>
                       <FormMessage />
@@ -188,13 +195,14 @@ export default function CreateOrderPage() {
                 />
               </div>
 
-              {/* Location details section */}
+              {/* Location details */}
               <div className="border rounded-lg p-4 bg-muted/30 space-y-4">
                 <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                   <Info className="w-4 h-4 flex-shrink-0" />
                   <span>Точное местоположение поможет инженерам, работающим в вашем районе, быстрее найти заявку</span>
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
+                  {/* District — disabled until region chosen, must select from list */}
                   <FormField
                     control={form.control}
                     name="district"
@@ -204,16 +212,17 @@ export default function CreateOrderPage() {
                         <FormControl>
                           <AddressAutocomplete
                             value={field.value ?? ""}
-                            onChange={(v, suggestion) => {
+                            onChange={(v) => {
                               field.onChange(v);
                               // Cascade: district change clears locality and address
                               form.setValue("locality", "");
                               form.setValue("address", "");
                             }}
-                            onValidationChange={(hasError) => setDistrictHasError(hasError)}
+                            onValidationChange={setDistrictHasError}
                             level="district"
-                            region={form.watch("region")}
-                            placeholder="Начните вводить район..."
+                            region={watchedRegion}
+                            placeholder={watchedRegion ? "Начните вводить район..." : "Сначала выберите субъект РФ"}
+                            disabled={!watchedRegion}
                             freeText={false}
                             data-testid="input-district"
                           />
@@ -222,6 +231,8 @@ export default function CreateOrderPage() {
                       </FormItem>
                     )}
                   />
+
+                  {/* Locality — disabled until district chosen, must select from list */}
                   <FormField
                     control={form.control}
                     name="locality"
@@ -229,9 +240,16 @@ export default function CreateOrderPage() {
                       <FormItem>
                         <FormLabel>Населённый пункт (необязательно)</FormLabel>
                         <FormControl>
-                          <Input
-                            placeholder="Город, деревня, СНТ, ДНТ..."
-                            {...field}
+                          <AddressAutocomplete
+                            value={field.value ?? ""}
+                            onChange={(v) => field.onChange(v)}
+                            onValidationChange={setLocalityHasError}
+                            level="locality"
+                            region={watchedRegion}
+                            district={watchedDistrict}
+                            placeholder={watchedDistrict ? "Начните вводить название..." : "Сначала выберите район"}
+                            disabled={!watchedDistrict}
+                            freeText={false}
                             data-testid="input-locality"
                           />
                         </FormControl>
@@ -240,6 +258,8 @@ export default function CreateOrderPage() {
                     )}
                   />
                 </div>
+
+                {/* Address — free text, optional hints */}
                 <FormField
                   control={form.control}
                   name="address"
@@ -251,7 +271,7 @@ export default function CreateOrderPage() {
                           value={field.value ?? ""}
                           onChange={(v) => field.onChange(v)}
                           level="address"
-                          region={form.watch("region")}
+                          region={watchedRegion}
                           placeholder="Улица, дом, кадастровый номер..."
                           freeText={true}
                           data-testid="input-address"
@@ -291,6 +311,7 @@ export default function CreateOrderPage() {
                   )}
                 />
               </div>
+
               <div className="flex gap-3 pt-2">
                 <Button
                   type="submit"
