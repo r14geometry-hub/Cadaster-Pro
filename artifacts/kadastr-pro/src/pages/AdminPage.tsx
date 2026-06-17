@@ -243,6 +243,32 @@ export default function AdminPage() {
     },
   });
 
+  const approveEngineer = async (engineerId: number) => {
+    const res = await fetch(`/api/admin/engineers/${engineerId}/approve`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!res.ok) throw new Error("Approve failed");
+    queryClient.invalidateQueries({ queryKey: getListAdminEngineersQueryKey({}) });
+    queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+    toast({ title: "Инженер подтверждён" });
+  };
+
+  const rejectEngineer = async (engineerId: number) => {
+    const reason = window.prompt("Причина отклонения", "Данные не подтверждены");
+    const res = await fetch(`/api/admin/engineers/${engineerId}/reject`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reason }),
+    });
+    if (!res.ok) throw new Error("Reject failed");
+    queryClient.invalidateQueries({ queryKey: getListAdminEngineersQueryKey({}) });
+    queryClient.invalidateQueries({ queryKey: getGetAdminStatsQueryKey() });
+    toast({ title: "Инженер отклонён" });
+  };
+
   const { data: adminSettings } = useGetAdminSettings({
     query: { enabled: isAdmin, queryKey: getGetAdminSettingsQueryKey() },
   });
@@ -545,15 +571,25 @@ export default function AdminPage() {
                               >
                                 {eng.isHidden ? <><Eye className="w-3 h-3" /> Показать</> : <><EyeOff className="w-3 h-3" /> Скрыть</>}
                               </Button>
+                              {!eng.isVerified && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 text-xs gap-1 text-emerald-600 border-emerald-200 hover:bg-emerald-50"
+                                  onClick={() => approveEngineer(eng.id)}
+                                  data-testid={`button-approve-engineer-${eng.id}`}
+                                >
+                                  <ShieldCheck className="w-3 h-3" /> Подтвердить
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-7 text-xs gap-1 text-blue-600 border-blue-200 hover:bg-blue-50"
-                                onClick={() => reverify.mutate({ id: eng.id })}
-                                disabled={reverify.isPending}
-                                data-testid={`button-reverify-mod-${eng.id}`}
+                                className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50"
+                                onClick={() => rejectEngineer(eng.id)}
+                                data-testid={`button-reject-engineer-${eng.id}`}
                               >
-                                <RefreshCw className="w-3 h-3" /> Верифицировать
+                                Отклонить
                               </Button>
                               <Button
                                 size="sm"

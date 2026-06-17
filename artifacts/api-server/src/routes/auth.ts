@@ -86,8 +86,8 @@ router.post("/auth/register", authLimiter, async (req, res) => {
         userId: user.id,
         registryNumber: attestatNumber,
         attestatNumber,
-        isVerified: true,
-        rosreestrStatus: record.status,
+        isVerified: false,
+        rosreestrStatus: "pending",
         sroName: record.sroName,
         rosreestrCheckedAt: new Date(),
         rosreestrWorksCount: record.worksCount,
@@ -103,8 +103,8 @@ router.post("/auth/register", authLimiter, async (req, res) => {
       await db.insert(verificationLogsTable).values({
         engineerId: eng.id,
         attestatNumber,
-        result: "pass",
-        failureReason: null,
+        result: "pending",
+        failureReason: "Ожидает ручной проверки администратором",
         rawSnapshot: JSON.stringify(record),
       });
 

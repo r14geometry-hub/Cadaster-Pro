@@ -895,4 +895,72 @@ router.patch("/admin/regions/:regionId", requireAuth, requireRole("superadmin"),
   }
 });
 
+// ── Engineer manual verification ─────────────────────────────
+
+router.post("/admin/engineers/:engineerId/approve", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.engineerId);
+
+    const [updated] = await db
+      .update(engineersTable)
+      .set({
+        isVerified: true,
+        rosreestrStatus: "verified",
+        rosreestrCheckedAt: new Date(),
+      })
+      .where(eq(engineersTable.id, engineerId))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Engineer not found" });
+      return;
+    }
+
+    await db.insert(verificationLogsTable).values({
+      engineerId,
+      result: "manual_approved",
+      failureReason: null,
+      rawSnapshot: JSON.stringify({ action: "approved_by_admin" }),
+    });
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/admin/engineers/:engineerId/reject", requireAuth, requireRole(ADMIN_ROLES), async (req, res) => {
+  try {
+    const engineerId = parseInt(req.params.engineerId);
+    const { reason } = req.body;
+
+    const [updated] = await db
+      .update(engineersTable)
+      .set({
+        isVerified: false,
+        rosreestrStatus: "rejected",
+      })
+      .where(eq(engineersTable.id, engineerId))
+      .returning();
+
+    if (!updated) {
+      res.status(404).json({ error: "Engineer not found" });
+      return;
+    }
+
+    await db.insert(verificationLogsTable).values({
+      engineerId,
+      result: "manual_rejected",
+      failureReason: reason || "Отклонено администратором",
+      rawSnapshot: JSON.stringify({ action: "rejected_by_admin" }),
+    });
+
+    res.json(updated);
+  } catch (err) {
+    req.log.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 export default router;
